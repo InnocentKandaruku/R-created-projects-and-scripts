@@ -1,0 +1,212 @@
+---
+title: "TasteTrios"
+author: "KANDARUKU INNOCENT."
+date: "2024-03-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+### ------------- loading in the required data sets ----------------------------- ####
+library("tidyverse")
+library("DT")
+library("plotly")
+library("kableExtra")
+library("here")
+library("caret")
+library("caTools")
+library("rpart")
+library("rpart.plot")
+library("knitr")
+library("randomForest")
+library("broom")
+## -------------------- loaded libraries --------------------------------------- ####
+tt <- read.csv(here("F:/Rpractice/DATA SETS/TasteTrios - Sheet1 (1).csv"))
+```
+
+#### **Description of the Taste Trios data set**
+
+The Taste Trios data set is a captivating compilation that delves into the world of perfect ingredient combinations, focusing on main ingredients harmonizing with two sub-ingredients. This data set is meticulously categorized into three compatibility levels: Highly Compatible, Moderately Compatible, and Compatible. Each entry represents a delightful trio of ingredients, offering culinary enthusiasts and professionals a trove of inspiration for crafting delicious recipes and uncovering new flavor profiles.
+
+Data set Structure: The data set structure is organized in a tabular format with the following key attributes:
+
+-   **Main Ingredient:** The star of the show, serving as the foundation for the flavor trio.
+-   **Sub-Ingredient 1:** The first supporting ingredient, contributing to the delightful synergy of flavors.
+-   **Sub-Ingredient 2:** The second complementary ingredient, enhancing the overall taste experience.
+-   **Compatibility Level:** A classification indicating whether the trio is Highly Compatible, Moderately Compatible, or Compatible.
+
+**The table below shows the Taste Trios data set that was used for ingredient combination**.
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+datatable(tt,
+          options = list(
+            scrollX = TRUE,
+            scrollY = "400px",
+            paging = FALSE,
+            ordering = FALSE,
+            stripeClass = c("even","odd")
+          ), rownames = FALSE)
+
+```
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+### -------------- Stimulating the structure of the Taste trios data set ----------------------- #####
+tt$Ingredient.1 = as.factor(tt$Ingredient.1)
+tt$Ingredient.2 = as.character(tt$Ingredient.2)
+tt$Ingredient.3 = as.character(tt$Ingredient.3)
+tt$Classification.Output = as.factor(tt$Classification.Output)
+
+```
+
+#### **Exploratory Data Analysis**
+
+This section of the report mainly consists of summary statistics with the respective data visualizations of different ingredients and Classification outputs. It consists of results summarized from Ingredient.1, ingredient.2, Ingredient.3 and the classification output.
+
+**Ingredient.1** This contains an ordered list of the main items that were used to mix with other sub-ingredients in order to acquire a specified level of compatibility.
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+Ingredient.1_table <- table(tt$Ingredient.1)
+Ingredient.1_prop <- prop.table(Ingredient.1_table)
+
+freq_and_proportions_table <- data.frame(Ingredient.1_table = names(Ingredient.1_table),
+                                         frequency = as.vector(Ingredient.1_table),
+                                         proportion = as.vector(Ingredient.1_prop))
+kable(freq_and_proportions_table, caption = "Ingredient.1 summary statistics",
+      col.names = c("Ingredient.1","Frequency","Percentage(%)"),
+      align = "l") %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("bordered","hover"), html_font = "heivertica")
+```
+
+The summary statistics in the table above indicated that the largest proportion of the ingredients were **Avocado** and **Walnuts** with equal percentages of **0.1%**. Minority of the ingredients used were **pumpkins (0.02%)**.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+Ingredient.1_graph <- tt %>% 
+  mutate(Ingredient.1 = fct_infreq(Ingredient.1)) %>% 
+  mutate(Ingredient.1 = fct_rev(Ingredient.1)) %>% 
+  ggplot(aes(x = Ingredient.1, fill = Ingredient.1)) +
+  geom_bar() +
+  labs(title = "The bar-chart below shows the distribution of Ingredient.1 categories",
+       x = "Ingredient.1", y = "frequency") +
+  theme(legend.position = "none") +
+  theme(title = element_text(size = 8, color = "black", face = "bold")) +
+  coord_flip()
+
+Ingredient.1_graph_plotly <- ggplotly(Ingredient.1_graph)
+Ingredient.1_graph_plotly
+
+```
+
+The bar chart above indicated that Avocado and Walnuts were the mostly used main ingredients, some of the few ingredients used were **Blueberries, Chickpeas, Eggs, Lemon, Mango, Mushroom, Pineapple, Salmon and Shrimp**. The minority of the cooks used **Pumpkins** as their main ingredient.
+
+**Classification.Output** This variable was used to classify the category/level of output attained on selection of required ingredients. These levels included **Compatible**,**Highly Compatible** and **Moderately Compatible**.
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+Classification.Output_table <- table(tt$Classification.Output)
+Classification.Output_prop <- prop.table(Classification.Output_table)
+
+freq_and_proportions_table2 <- data.frame(Classification.Output_table = names(Classification.Output_table),
+                                          frequency = as.vector(Classification.Output_table),
+                                          proportion = as.vector(Classification.Output_prop))
+
+kable(freq_and_proportions_table2, caption = "Classification.Output summary statistics",
+      align = "l", col.names = c("Classification.Output","Frequency","Percentage(%)")) %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica")
+
+```
+
+The statistics in the table above indicated that majority of the ingredients combined were highly compatible **(0.4%)**, a few were moderately compatible **(0.3%)** and the minority were compatible **(0.2%)**.
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+Classification.Output_graph <- tt %>% 
+  mutate(Classification.Output = fct_infreq(Classification.Output)) %>% 
+  mutate(Classification.Output = fct_rev(Classification.Output)) %>% 
+  ggplot(aes(x = Classification.Output)) +
+  geom_bar(fill = "navy") +
+  labs(title = "The column chart below illustrates the distribution of different classiffication output\nlevels",
+       x = "classification output", y = "frequency") +
+  theme(legend.position = "none") +
+  theme(title = element_text(size = 8, colour = "black", face = "bold"))
+Classification.Output_graph_plotly <- ggplotly(Classification.Output_graph)
+Classification.Output_graph_plotly
+
+```
+
+The column chart above indicated that most of the ingredients were highly compatible compared to the minority that were compatible.
+
+**The classification output distribution in the different main ingredients**
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+distinct_count <- tt %>% 
+  select(Ingredient.1, Classification.Output) %>% 
+  group_by(Classification.Output) %>% 
+  table()
+
+kable(distinct_count, caption = "Main ingredient distribution in the classification output level", 
+      align = "l") %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("bordered","hover"), html_font = "heivertica")
+
+```
+
+The table above indicated that Avocado had the highest number of ingredient compatibility levels in the three categories **(Compatible = 20, Moderately compatible = 20, Highly compatible = 20)** compared to pumpkins that had the lowest number of ingredient compatibility **(compatible = 1, Moderately compatible = 7, Highly compatible = 3)**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+Distinct_graph <- tt %>% 
+  mutate(Ingredient.1 = fct_infreq(Ingredient.1)) %>% 
+  mutate(Ingredient.1 = fct_rev(Ingredient.1)) %>% 
+  ggplot(aes(x = Ingredient.1, fill = Classification.Output)) +
+  geom_bar() +
+  labs(title = "The bar chart below shows the distribution of classification output categories in the main \ningredients.",
+       x = "Ingredient.1", y = "frequency") +
+  theme(title = element_text(size = 8, color = "black", face = "bold")) +
+  coord_flip()
+Distinct_graph_plotly <- ggplotly(Distinct_graph)
+Distinct_graph_plotly
+
+```
+
+The bar chart above indicated that majority of the ingredient combinations were highly and moderately compatible.
+
+**Modelling** Random forest machine learning algorithm was employed by the researcher in order to predict the compatibility level of ingredient combination. It also contains the accuracy levels, test data set and the printed possible predictions of the model.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+## ------------ splitting the data set into the training and testing data set ------------- ####
+tt_split <- sample.split(tt$Classification.Output, SplitRatio = 0.9)
+tt_train_data <- subset(tt, tt_split == TRUE)
+tt_test_data <- subset(tt, tt_split == FALSE)
+
+## -------------- generating the model called TT_forest ----------------------------- #####
+TT_forest <- randomForest(Classification.Output ~., data = tt_train_data)
+
+## ----------------- generating the possible predictions --------------------------------- #####
+TT_forest_predictions <- predict(TT_forest, newdata = tt_test_data, type = "class")
+
+## ------------ creating a data frame of the prediction --------------------- ####
+Prediction_data <- as.data.frame(TT_forest_predictions)
+Actual_and_Predicted_data <- cbind(actual = tt_test_data, predicted = Prediction_data)
+Clean_data <- as.data.frame(Actual_and_Predicted_data)
+datatable(Actual_and_Predicted_data, options = list(
+  scrollX = "TRUE",
+  scrollY = "300px",
+  paging = FALSE,
+  ordering = FALSE,
+  stripeClass = c("even","odd")
+), rownames = FALSE)
+#print(TT_forest_predictions)
+
+
+```
+
+**Evaluation of the machine learning model used**
+
+A confusion matrix was used to evaluate the general performance of the model that was employed.
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+confusionMatrix(table(TT_forest_predictions, tt_test_data$Classification.Output))
+
+```
+
+The summary statistics above indicated that the machine learning model employed had 50% level of accuracy with a highly compatible sensitivity level (0.7) and compatible specificity of 0.9.
