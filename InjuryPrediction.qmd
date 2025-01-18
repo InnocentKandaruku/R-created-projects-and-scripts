@@ -1,0 +1,956 @@
+---
+title: "SOCCER INJURY"
+description: An exploratory data analysis and prediction analysis of the injuries data set
+date: today
+author:
+  - name: Kandaruku Innocent
+    affiliation: Makerere University
+    affiliation-url: https://www.mak.ac.ug
+title-block-banner: '#O57F56'
+format: 
+  html:
+    code-fold: true
+    theme: united
+    toc: true
+    toc-float: true
+    number-sections: true
+    link-citations: true
+---
+
+![A Tottenham Hot Spur football player](images/GettyImages-1741628922-scaled.jpg)
+
+# **About Data**
+
+## **Description**
+
+To address the growing concern regarding player safety and injury prevention in competitive sports, we present a synthetic dataset designed specifically for injury prediction. By leveraging R libraries such as **tidyverse** and **plotly**, we aim to create realistic representation of player health and injury data. Our synthetic dataset captures critical attributes such as demographics, training intensities, recovery times, and previous injury histories. Correlations between these features and the likelihood of future injuries to accurately simulate real world scenarios.
+
+```{r loading libraries}
+#| echo: false
+#| message: false
+#| warning: false
+
+library("tidyverse")
+library("reactable")
+library("plotly")
+library("kableExtra")
+library("plotly")
+library("DT")
+library("knitr")
+library("here")
+library("reshape2")
+library("Hmisc")
+library("corrplot")
+library("rpart")
+library("rpart.plot")
+library("caret")
+library("caTools")
+library("ggcorrplot")
+library("gt")
+library("gfonts")
+library("randomForest")
+library("ROCR")
+library("broom")
+library("reactable")
+```
+
+```{r gt table function}
+#| echo: false
+#| warning: false
+#| message: false
+
+my_gt_theme <- function(gt_tbl){
+  n_rows <- nrow(gt_tbl$`_data`)
+  gt_tbl %>% 
+    tab_options(
+      data_row.padding = px(6),
+      heading.align = "left",
+      column_labels.background.color = "dodgerblue4",
+      heading.title.font.size = px(26),
+      heading.subtitle.font.size = px(14)
+    
+    ) %>% 
+    tab_style(
+      style = cell_text(
+        color = "dodgerblue4",
+        weight = "bold",
+        font = google_font("heivertica")
+      ),
+      locations = cells_title(groups = "title")
+    ) %>% 
+  tab_style(
+    style = cell_fill(color = "grey90"),
+    locations = cells_body(rows = seq(1, n_rows, 2))
+  )
+}
+
+my_gt_theme2 <- function(gt_tbl){
+  n_rows <- nrow(gt_tbl$`_data`)
+  gt_tbl %>% 
+    tab_options(
+      data_row.padding = px(6),
+      heading.align = "left",
+      column_labels.background.color = "maroon",
+      heading.title.font.size = px(26),
+      heading.subtitle.font.size = px(14)
+    
+    ) %>% 
+    tab_style(
+      style = cell_text(
+        color = "black",
+        weight = "bold",
+        font = google_font("heivertica")
+      ),
+      locations = cells_title(groups = "title")
+    ) %>% 
+  tab_style(
+    style = cell_fill(color = "#FF889344"),
+    locations = cells_body(rows = seq(1, n_rows, 2))
+  )
+}
+
+my_gt_theme3 <- function(gt_tbl){
+  n_rows <- nrow(gt_tbl$`_data`)
+  gt_tbl %>% 
+    tab_options(
+      data_row.padding = px(6),
+      heading.align = "left",
+      column_labels.background.color = "navy",
+      heading.title.font.size = px(26),
+      heading.subtitle.font.size = px(14)
+    
+    ) %>% 
+    tab_style(
+      style = cell_text(
+        color = "black",
+        weight = "bold",
+        font = google_font("heivertica")
+      ),
+      locations = cells_title(groups = "title")
+    ) %>% 
+  tab_style(
+    style = cell_fill(color = "darkgrey"),
+    locations = cells_body(rows = seq(1, n_rows, 2))
+  )
+}
+```
+
+```{r reactable function}
+#| echo: false
+#| message: false
+#| warning: false
+
+### ----------- creating the reactable function for customizing the theme for the table ----- ######
+customTheme <- reactableTheme(
+  color = "black",
+  backgroundColor = "white",
+  stripedColor = "#f7f7f7",
+  highlightColor = "#e5e5e5",
+  borderColor = "#cccccc",
+  cellPadding = "8px 12px"
+)
+```
+
+```{r reading the data set from the memory}
+#| echo: false
+#| message: false
+#| warning: false
+ip <- read.csv(here("F:/Rpractice/DATA SETS/injury_data.csv"))
+```
+
+```{r transforming data}
+#| echo: false
+#| message: false
+#| warning: false
+ip$Player_Age = as.numeric(ip$Player_Age)
+ip$Previous_Injuries = as.factor(ip$Previous_Injuries)
+ip$Recovery_Time = as.factor(ip$Recovery_Time)
+ip$Likelihood_of_Injury = as.factor(ip$Likelihood_of_Injury)
+```
+
+## **Sample of the soccer injury data set.**
+
+```{r sample data}
+#| echo: false
+#| message: false
+#| warning: false
+
+ip_top6 <- head(ip, 6)
+ip_top6_dataframe <- data.frame(ip_top6)
+gt(ip_top6_dataframe) %>% 
+  cols_label(
+    Player_Age = "Player_Age",
+    Player_Weight = "Player_Weight",
+    Player_Height = "Player_Height",
+    Previous_Injuries = "Previous_Injuries",
+    Training_Intensity = "Training_Intensity",
+    Recovery_Time = "Recovery_Time",
+    Likelihood_of_Injury = "Likelihood_of_Injury"
+  ) %>% 
+  tab_header(
+    title = "Details of soccer players",
+    subtitle = "The table shows the detailed information of a player and likelihood of an injury"
+  ) %>% 
+  my_gt_theme()
+
+```
+
+# **Exploratory Data Analysis**
+
+## **Categorical variables**
+
+### **Previous Injures**
+
+```{r injury bar chart}
+#| label: fig-1
+#| fig-cap: previous injury distribution among players
+#| cap-location: bottom
+previous_injury_chart <- ip %>% 
+  mutate(Previous_Injuries = fct_infreq(Previous_Injuries)) %>% 
+  mutate(Previous_Injuries = fct_rev(Previous_Injuries)) %>% 
+  ggplot(aes(x = Previous_Injuries, fill = Previous_Injuries)) + geom_bar() +
+  labs(title = "The proportion of players based on their injuries", 
+       x = "injuries", y = "frequnecy") +
+  theme(title = element_text(size = 8, colour = "black", face = "bold"))
+ggplotly(previous_injury_chart)
+```
+
+```{r table injury}
+previous_inj_freq <- table(ip$Previous_Injuries)
+previous_inj_prop <- prop.table(previous_inj_freq)
+inj_prop_and_freq <- data.frame(previous_inj_freq = names(previous_inj_freq),
+                                frequency = as.vector(previous_inj_freq),
+                                proportion = as.vector(previous_inj_prop))
+kable(inj_prop_and_freq, caption = "previous injuries of a player?", 
+      colnames = c("Previous injuries","Frequency","Percentage(%)"),
+      align = c("l","r","r")) %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("bordered","hover","condensed"), html_font = "heivertica")
+```
+
+Majority of the players had previous injuries**(0.51%)** whereas the minority did not experience any injury**(0.49%)**.
+
+::: callout-note
+### Previous injuries
+
+-   0(players with previous injuries)
+-   1(players with no previous injuries)
+:::
+
+### **Recovery Time**
+
+```{r recovery bar chart}
+#| echo: false
+#| warning: false
+#| message: false
+#| label: fig-2
+#| fig-cap: proportion of players in each time of recovery
+#| fig-link: previous_inj_freq
+recovery_bar_chart <- ip %>% 
+  mutate(Recovery_Time = fct_infreq(Recovery_Time)) %>% 
+  mutate(Recovery_Time = fct_rev(Recovery_Time)) %>%
+  ggplot(aes(x = Recovery_Time, fill = Recovery_Time)) +
+  geom_bar() +
+  labs(title = "Distribution of players time of recovery",
+       x = "days", y = "no. of players") +
+  theme(title = element_text(size = 8, colour = "black", face = "bold")) +
+  theme(legend.position = "none") 
+ggplotly(recovery_bar_chart)
+```
+
+::: callout-note
+### About the recovery time.
+
+The recovery time of a player was estimated in terms of days. These were from **(1-6)** days
+:::
+
+```{r recovery table}
+#| echo: false
+#| message: false
+#| warning: false
+recovery_freq <- table(ip$Recovery_Time)
+recovery_prop <- prop.table(recovery_freq)
+recovery_freq_and_prop <- data.frame(recovery_freq = names(recovery_freq),
+                                     frequency = as.vector(recovery_freq),
+                                     proportion = as.vector(recovery_prop))
+kable(recovery_freq_and_prop, caption = "Proportion of players in each recovery time",
+      col.names = c("Recovery Time","Frequency","Percentage(%)"),
+      align = c("l","r","r")) %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica")
+
+```
+
+Based on the statistics indicated by the table above, majority of the soccer players had 2 days**(0.2%)** of recovery time, a few of them had 4 days**(0.18)** and the minority recovered for 3 days**(0.12%)**.
+
+### **Likelihood of injury**
+
+```{r likelihood injury bar chart}
+#| echo: false
+#| message: false
+#| warning: false
+#| label: fig-3
+#| fig-cap: Recovery time distribution
+#| fig-cap-location: bottom
+
+lik_inj_bar_chart <- ip %>% 
+  mutate(Likelihood_of_Injury = fct_infreq(Likelihood_of_Injury)) %>% 
+  mutate(Likelihood_of_Injury = fct_rev(Likelihood_of_Injury)) %>% 
+  ggplot(aes(x = Likelihood_of_Injury, fill = Likelihood_of_Injury)) +
+  geom_bar() +
+  labs(title = "Proportion of injury likelihood among soccer players", x = "likelihood of injury",
+       y = "no. of players") +
+  theme(title = element_text(size = 9, colour = "black", face = "bold"))
+ggplotly(lik_inj_bar_chart)
+```
+
+```{r likelihood table}
+#| echo: false
+#| warning: false
+#| message: false
+lik_inj_freq <- table(ip$Likelihood_of_Injury)
+lik_inj_prop <- prop.table(lik_inj_freq)
+lik_inj_freq_and_prop <- data.frame(lik_inj_freq = names(lik_inj_freq),
+                                    frequency = as.vector(lik_inj_freq),
+                                    proportion = as.vector(lik_inj_prop))
+kable(lik_inj_freq_and_prop, caption = "A player's likelihood of getting injured", 
+      col.names = c("Likelihood","Frequency","Proportion(%)"),
+      align = c("l","r","r")) %>% 
+  kable_paper("striped") %>%
+  kable_styling(bootstrap_options = c("hover","bordered","condensed"), 
+                html_font = "heivertica", stripe_color = "black")
+
+```
+
+The statistics in the table above indicated that there was an equal likelihood of a soccer player being either injured or not in a given game**(0.5%)**.
+
+::: callout-important
+#### Likelihood of an injury take note
+
+The likelihood of a soccer player being injured is indicated by the category(0) and those not likely to get injured is category(1)
+:::
+
+## **Numerical variables**
+
+### **Player's Age**
+
+```{r age descriptives}
+#| echo: false
+#| message: false
+#| warning: false
+Age_stat <- ip %>% 
+  summarise(
+    Minimum = min(Player_Age),
+    Median = median(Player_Age),
+    Average = round(mean(Player_Age), 2),
+    STD = round(sd(Player_Age), 2),
+    Maximum = max(Player_Age)
+  )
+kable(Age_stat, caption = "Age descriptive statistics", 
+      col.names = c("Minimum","Median","Average","STDev","Maximum"),
+      align = "l") %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered","condensed"), html_font = "heivertica")
+```
+
+The table above indicated that the player's age ranged from **18** to **39** years with an average estimate of **28.23** years, and a moderate level of variation of each player's age**(6.5)**.
+
+```{r age histogram}
+#| echo: false
+#| message: false
+#| warning: false
+#| label: fig-4
+#| fig-cap: soccer player's distribution in age.
+#| fig-cap-location: margin
+Age_hist <- ip %>% 
+  ggplot(aes(x = Player_Age)) + geom_histogram(binwidth = 2, colour = "white", fill = "black") +
+  labs(title = "The histogram below shows the age distribution of the soccer players",
+       x = "class interval", y = "no. of players") +
+  theme(title = element_text(size = 9, colour = "black", face = "bold"))
+
+ggplotly(Age_hist)
+```
+
+The histogram above indicated that there was a **bi-modal distribution** of the soccer players age with majority of them having **20 years** and **35 years**, and the minority had age between **(25-30) years** and **40 years**.
+
+### **Player's Weight**
+
+```{r weight distribution table}
+#| echo: false
+#| message: false
+#| warning: false
+weight_stat <- ip %>% 
+  summarise(
+    Minimum = round(min(Player_Weight), 2),
+     Minimum = round(min(Player_Weight), 2),
+    Median = round(median(Player_Weight), 2),
+    Average = round(mean(Player_Weight), 2),
+    STD = round(sd(Player_Weight), 2),
+    Maximum = round(max(Player_Weight), 2)
+  )
+
+kable(weight_stat, caption = "Weight descriptives", 
+      col.names = c("Minimum","Median","Average","STDev","Maximum"),
+      align = "l") %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered","condensed"), html_font = "heivertica")
+```
+
+The statistics in the table above indicated that a soccer players' weight is estimated to be **74.79 kg** ranging between **40.2 kg** to **104.7kg**, with majority of the weights estimated to revolve around **75.02kg** and a **low level of variation** each weight**(9.9)**
+
+```{r weight histogram}
+#| echo: false
+#| message: false
+#| warning: false
+#| label: fig-5
+#| fig-cap: Distribution of weight among the players.
+#| fig-cap-location: margin
+weight_hist <- ip %>% 
+  ggplot(aes(x = Player_Weight)) + geom_histogram(binwidth = 5, colour = "white", fill = "navy") +
+  labs(title = "The histogram below shows the weight distribution in soccer players",
+       x = "class interval", y = "no. of players") +
+  theme(title = element_text(size = 9, colour = "black", face = "bold"))
+weight_hist
+```
+
+From the histogram above, the weight in the soccer players showed a **normal distribution**
+
+### **Player's Height**
+
+```{r Height distribution table}
+#| echo: false
+#| warning: false
+#| message: false
+height_stat <- ip %>% 
+  summarise(
+    Minimum = round(min(Player_Height), 2),
+    Median = round(median(Player_Height), 2),
+    Average = round(mean(Player_Height), 2),
+    STD = round(sd(Player_Weight), 2),
+    Maximum = round(max(Player_Height), 2)
+  )
+
+kable(height_stat, caption = "Height descriptives", 
+      col.names = c("Minimum","Median","Average","STDev","Maximum"),
+      align = "l") %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered","condensed"), html_font = "heivertica")
+```
+
+```{r height histogram}
+#| echo: false
+#| message: false
+#| warning: false
+#| label: fig-6
+#| fig-cap: Distribution of height among the players.
+#| fig-cap-location: margin
+height_hist <- ip %>% 
+  ggplot(aes(x = Player_Height)) + 
+  geom_histogram(binwidth = 5, colour = "white", fill = "darkred") +
+  labs(title = "The histogram below shows the height distribution in soccer players",
+       x = "class interval", y = "no. of players") +
+  theme(title = element_text(size = 9, colour = "black", face = "bold"))
+ggplotly(height_hist)
+```
+
+The histogram above indicated that the height of soccer players followed a **normal distribution** with an average height of **179.75 cm** ranging from **145.29 cm** to **207.31 cm**, and had a low level of variation in each player's height **(9.9 cm)**.
+
+### **Training intensity**
+
+```{r Training_intensity table}
+#| echo: false
+#| message: false
+#| warning: false
+Training_intensity_stat <- ip %>% 
+  summarise(
+    Minimum = round(min(Training_Intensity), 4),
+    Median = round(median(Training_Intensity),2),
+    Average = round(mean(Training_Intensity),2),
+    STDev = round(sd(Training_Intensity),2),
+    Maximum = round(max(Training_Intensity), 2)
+  )
+kable(Training_intensity_stat, caption = "player's training intensity distribution",
+      col.names = c("Minimum","Median","Average","STDev","Maximum"),
+      align = "l") %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered","condensed"), html_font = "heivertica")
+```
+
+```{r Training intensity histogram}
+#| echo: false
+#| message: false
+#| warning: false
+#| label: fig-7
+#| fig-cap: distribution of the training intensity of the soccer players
+#| fig-cap-location: margin
+Training_intensity_hist <- ip %>% 
+  ggplot(aes(x = Training_Intensity)) +
+  geom_histogram(binwidth = 0.1, colour="white", fill = "gray45") +
+  labs(title = "The figure below shows the distribution of training intensity among players",
+       x = "class interval", y = "no. players") +
+  theme(title = element_text(size = 9, colour = "black", face = "bold"))
+
+ggplotly(Training_intensity_hist)
+```
+
+The figure and table above indicated that the training intensity of players had **bi-modal distribution** with an average, moderate level of intensity (0.5) that ranged from 0 **(low intensity)** to 1 **(high intensity)** and a low level in variation**(0.3)**
+
+## **Associations that are in the different variables of the data**
+
+### **Relationships between the numerical variables**
+
+This section of the report consists of a correlogram that shows the correlation figures between the distinct numerical variables and scatter plots. \#### **Correlogram**
+
+```{r correlogram plot}
+#| echo: false
+#| warning: false
+#| message: false
+#| label: fig-8
+#| fig-cap: summarised correlation among the numerical varaibles
+#| fig-cap-location: margin
+ip2 = subset(ip, select = -c(Likelihood_of_Injury, Previous_Injuries, Recovery_Time))
+ip_var <- round(cor(ip2), 2)
+correlogram_plot <- ggcorrplot(ip_var, lab = TRUE) +
+  labs(title = "Correlation figures between the numeric variables") +
+  theme(title = element_text(size = 9, colour = "black", face = "bold"))
+correlogram_plotly <- ggplotly(correlogram_plot)
+correlogram_plotly
+```
+
+Based on the correlogram plot above, there was a linear and insignificant relationship between the player's age and intensity**(r = 0.04, p = 0.20)**, age and weight**(r = -0.04, p = 0.20)**, age and height**(r = 0.04, p = 0.16)**, player's height and weight**(r = 0.03, p = 0.33)**, height and intensity**(r = 0.05, p = 0.13)**, and then the weight and intensity**(r = 0.04, p = 0.16)**
+
+::: callout-caution
+## The linearlity of the relationships
+
+Relationships between the numerical variables are either **positive** or **negative** and the significance level is below 0.05 p-value
+:::
+
+#### **Age with Weight association**
+
+```{r age and weight scatterplot}
+#| echo: false
+#| label: fig-9
+#| fig-cap: single column illustration
+#| warning: false
+#| message: false
+#| fig-cap-location: margin
+
+
+
+ggplotly(
+  ip %>% 
+    ggplot(aes(x = Player_Age, y = Player_Weight, col = Likelihood_of_Injury, 
+               size = Likelihood_of_Injury)) +
+    geom_point() +
+    geom_smooth(colour = "black", se = FALSE, method = "lm", size = 2) +
+    scale_x_log10(position = "bottom") +
+    labs(title = "The scatter plot below shows the relationship between age and weight of a player",
+         x = "Age", y = "Weight") +
+    theme(title = element_text(size = 9, colour = "black", face = "bold")) +
+    theme(legend.title = element_text(face = "bold", colour = "black"))
+)
+```
+
+The scatter plot \[fig-9\] indicated that there was a linear relationship between the age and weight of a soccer player, with a gradual increase in the average age resulting into a proportionate reduction in the average weight.
+
+#### **Height with a player's Age**
+
+```{r height and age scatter plot}
+#| echo: false
+#| label: fig-10
+#| warning: false
+#| message: false
+#| fig-cap-location: margin
+#| fig-cap: player's age and height association.
+
+ggplotly(
+  ip %>% 
+    ggplot(aes(x = Player_Age, y = Player_Height, 
+               col = Likelihood_of_Injury,
+               size = Likelihood_of_Injury)) +
+    geom_point() +
+    labs(title = "The scatter plot below shows the relationship between the player's age and height",
+         x = "player_age", y = "player_height") +
+    geom_smooth(colour = "black", size = 2)+
+        theme_grey()+
+    theme(title = element_text(size = 9, colour = "black", face = "bold")) 
+
+)
+```
+
+The scatter graph above indicated that the relationship between the **player_height** and **player_age** was linear and as the average age gradually increased, there was a proportionate increase in the player's height. Additionally, the variation in the soccer player's height and age was higher among those that had a **less likelihood** of getting injuries.
+
+#### **Training intensity and Age of a soccer player**
+
+```{r age and training intensity scatterplot}
+#| echo: false
+#| label: fig-11
+#| warning: false
+#| message: false
+#| fig-cap-location: margin
+ggplotly(
+  ip %>% 
+  ggplot(aes(x = Player_Age, y = Training_Intensity, 
+             col = Likelihood_of_Injury, size = Likelihood_of_Injury)) +
+    geom_point() +
+    labs(title = "The scatter plot below shows the relationship between the age and training intensity\nof a player", x = "player_age", y = "training_intensity") +
+    geom_smooth(colour = "black", size = 2) +
+    theme_grey() + scale_color_hue() +
+    theme(title = element_text(size = 9, colour = "black", face = "bold"))
+)
+```
+
+The scatter plot above showed that there was a **linear relationship** between the age and training intensity of a soccer player. Soccer player's that had a higher average age showed a greater level of training intensity. There was a higher variation in the age and training intensity among soccer players that a less likelihood of getting injured.
+
+#### **Weight and Training intensity of a soccer player**
+
+```{r weight and training intensity scatter plot}
+#| echo: false
+#| warning: false
+#| label: fig-12
+#| message: false
+#| fig-cap-location: margin
+#| fig-cap: Association between weight and training intensity
+ggplotly(
+  ip %>% 
+    ggplot(aes(x = Player_Weight, y = Training_Intensity, size = Likelihood_of_Injury,
+               col = Likelihood_of_Injury)) +
+    geom_point() +
+    geom_smooth(colour = "black", size = 2) +
+    labs(title = "The scatter plot below shows the relationship between the player's\ntraining intensity and weight", x = "player_weight", y = "training_intensity") +
+    theme_grey() +
+    theme(title = element_text(size = 9, colour = "black", face = "bold"))
+)
+```
+
+The scatter plot above showed that there was a greater variation in weight and training intensity among the soccer players that were less likely to be injured. There was a **linear relationship** between the weight and training intensity of the soccer players with a proportionate increase in weight causing an increased level in the player's training intensity.
+
+#### **Weight and Height**
+
+```{r weight and height scatter plot}
+#| echo: false
+#| warning: false
+#| label: fig-13
+#| message: false
+#| fig-cap-location: margin
+#| fig-cap: Association between weight and height
+ggplotly(
+  ip %>% 
+    ggplot(aes(x = Player_Weight, y = Player_Height, 
+               col = Likelihood_of_Injury, size = Likelihood_of_Injury)) +
+    geom_point() +
+    geom_smooth(size = 2, colour = "black") +
+    labs(title = "The scatter plot below shows the relationship between weight and\nheight of a soccer player") +
+    theme_grey() +
+    theme(title = element_text(size = 9, colour = "black", face = "bold")) 
+)
+```
+
+The scatter graph above showed that there was a **higher variation** in a player's weight and height among the players that had no likelihood of getting injured, a **linear relationship** between the weight and height of a player further indicating that every proportionate increase in the weight resulted into a gradual increase in the player's height.
+
+# **Average distribution**
+
+**Introduction** This section of the report consists of the average distribution of age, weight and training intensity among the soccer player's regarding the likelihood of an injury and Recovery time variables. This will enable the researcher to acquire a comprehensive understanding of the insights uncovered from the soccer data.
+
+## **Average distribution in age, weight and training intensity based on Injury Likelihood**
+
+#### **Player's age**
+
+```{r age average distribution}
+#| echo: false
+#| message: false
+#| warning: false
+age_avgdist <- ip %>% 
+  select(Player_Age, Likelihood_of_Injury) %>% 
+  group_by(Likelihood_of_Injury) %>% 
+  summarise(A_avge = round(mean(Player_Age), 1)) %>% 
+  arrange(desc(A_avge))
+gt(age_avgdist)|>
+  cols_label(
+    Likelihood_of_Injury = "Likelihood of Injury",
+    A_avge = "Average Age of a player"
+  )|>
+  tab_header(
+    title = "Average age distribution",
+    subtitle = "Distribution in age of a soccer player grouped by injury likelihood"
+  )|>
+  my_gt_theme()
+
+```
+
+The statistics in the table above show that there was an even distribution in average age**(28.2 years)** of player irrespective of their probability of injury likelihood.
+
+#### **Player's Weight**
+
+```{r weight distribution in injury likelihood}
+#| echo: false
+#| message: false
+#| warning: false
+avg_weight_dist <- ip %>% 
+  select(Player_Weight, Likelihood_of_Injury) %>% 
+  group_by(Likelihood_of_Injury) %>% 
+  summarise(avg_w = round(mean(Player_Weight), 1)) %>% 
+  arrange(desc(avg_w))
+gt(avg_weight_dist)|>
+  cols_label(
+    Likelihood_of_Injury = "Likelihood of Injury",
+    avg_w = "Player's Average Weight"
+  )|>
+  tab_header(
+    title = "Average Weight Distribution",
+    subtitle = "Likelihood of injury and Average Weight among players"
+  )|>
+  my_gt_theme()
+```
+
+The table above indicated that there was an equal distribution in the average weight**(74.8kg)** of the soccer players irrespective of their chances of being injured.
+
+#### **Training Intensity**
+
+```{r average training intensity dist}
+#| echo: false
+#| message: false
+#| warning: false
+tr_avg_dist <- ip|>
+  select(Training_Intensity, Likelihood_of_Injury)|>
+  group_by(Likelihood_of_Injury)|>
+  summarise(avg_tr = round(mean(Training_Intensity), 1))|>
+  arrange(avg_tr)
+gt(tr_avg_dist)|>
+  tab_header(
+    title = "Average Training Intensity",
+    subtitle = "The average distributed according to the injury likelihood"
+  )|>
+  cols_label(
+    Likelihood_of_Injury = "Likelihood of Injury",
+    avg_tr = "Average Training Intensity"
+  )|>
+  my_gt_theme()
+  
+```
+
+The statistics in the table above indicated that there was a proportionate distribution in the average training intensity**(0.5)** among the soccer players irrespective of their chance of acquiring injury.
+
+## **Average distribution in age, weight and training intensity based on their different Recovery times**
+
+#### **Player Age**
+
+```{r avg age and recovery time}
+#| echo: false
+#| message: false
+#| warning: false
+avg_age_dist2 <- ip %>% 
+  select(Player_Age, Recovery_Time) %>% 
+  group_by(Recovery_Time) %>% 
+  summarise(avg_age_r = round(mean(Player_Age), 1)) %>% 
+  arrange(desc(avg_age_r))
+
+gt(avg_age_dist2)|>
+  cols_label(
+    Recovery_Time = "Recovery Time",
+    avg_age_r = "Average Age"
+  )|>
+  tab_header(
+    title = "SOCCER PLAYER'S DISTRIBUTION IN AGE",
+    subtitle = "The age distributed according to player's average age"
+  )|>
+  my_gt_theme2()
+
+```
+
+The statistics in the table above indicated that soccer players that recovered in **3 days** had a higher average age**(28.9 years)**, followed by those that recovered in 1-2 days**(28.4 years)** compared to those that recovered in 6 days**(27.7 years)**.
+
+#### **Player's Weight**
+
+```{r average weight based on recovery time}
+#| echo: false
+#| message: false
+#| warning: false
+avg_weight_r <- ip %>% 
+  select(Player_Weight, Recovery_Time) %>% 
+  group_by(Recovery_Time) %>% 
+  summarise(avg_w = round(mean(Player_Weight), 1)) %>% 
+  arrange(desc(avg_w))
+gt(avg_weight_r) %>% 
+  cols_label(
+    Recovery_Time = "Recovery Time",
+    avg_w = "Average Weight"
+  ) %>% 
+  tab_header(
+    title = "PLAYER_AVERAGE_WEIGHT DISTRIBUTION",
+    subtitle = "Distribution of weight based on the distinct recovery time"
+  ) %>% 
+  my_gt_theme2()
+```
+
+The statistics indicated in the table above had the players that recovered in 1 day with the highest average weight**(75.6 kg)**, followed by those that recovered in 3 days and 2 days with average weight of **75.5kg** and **75.3kg** respectively. Whereas the players that recovered in 5 days had the lowest average weight**(73.9kg)**.
+
+#### **Training Intensity**
+
+```{r averag training intensity based on recovery time}
+#| echo: false
+#| message: false
+#| warning: false
+tr_avg_r <- ip %>% 
+  select(Training_Intensity, Recovery_Time) %>% 
+  group_by(Recovery_Time) %>% 
+  summarise(tr_avg_r2 = round(mean(Training_Intensity), 1)) %>% 
+  arrange(desc(tr_avg_r2))
+gt(tr_avg_r) %>% 
+  cols_label(
+    Recovery_Time = "Recovery Time",
+    tr_avg_r2 = "Average Training Intensity"
+  ) %>% 
+  tab_header(
+    title = "AVERAGE_TRAINING INTENSITY DISTRIBUTION",
+    subtitle = "Proportions of the average training intensity in distinct recovery times"
+  ) %>% 
+  my_gt_theme2()
+```
+
+The statistics in the table above indicated that that players that recovered from 1 to 6 days had equal distribution in average training intensities**(0.5)**.
+
+# **MODELLING**
+
+**Introduction** This section of the report consists of the machine learning algorithms that were employed to make predictions of the injuries of a soccer player. Algorithms were employed basing on the nature of the dependent variable. Some of the algorithms used were classification, decision trees, random forests and support vector machine.
+
+```{r splitting the data set}
+#| echo: false
+#| message: false
+#| warning: false
+
+spliting_ip <- sample.split(ip$Likelihood_of_Injury, SplitRatio = 0.7)
+ip_training_set <- subset(ip, spliting_ip == TRUE)
+ip_testing_set <- subset(ip, spliting_ip == FALSE)
+
+```
+
+## **Logistic Regression**
+
+Logistic regression is a linear model used for binary classification that estimates the probability that a a given input belongs to a certain class. It uses the logistic( or sigmoid ) function to map the output of a linear equation to a probability value between **0** and **1**
+
+```{r Logistic regression summary}
+#| echo: false
+#| message: false
+#| warning: false
+
+
+set.seed(123)
+ip_log <- glm(Likelihood_of_Injury ~., data = ip_training_set, family = "binomial")
+Log_summary <- tidy(ip_log)
+Log_summary_df <- as.data.frame(Log_summary)
+reactable(Log_summary_df, 
+          striped = TRUE,
+          highlight = TRUE,
+          bordered = TRUE,
+          defaultColDef = colDef(align = "left"), 
+          theme = customTheme)
+```
+
+The statistics in the table above indicated that the Player's Age, Player's weight, Previous injuries of a player and Recovery time had insignificant association with the likelihood of injury of a given soccer player. The Training intensity had a significant influence on the likelihood of injury among the soccer players**(p-value = 0.05)**.
+
+::: callout-note
+#### Estimate of significance level of association
+
+p-value less or equal to 0.05 is **significant** and above 0.05 is estimated to be **insignificant**
+:::
+
+
+```{r logistic predictions}
+#| warning: false
+#| message: false
+#| echo: false
+Injury_Predictions <- predict(ip_log, ip_testing_set, type = "response")
+Log_prediction_df <- as.data.frame(Injury_Predictions) 
+
+reactable(Log_prediction_df,
+          striped = TRUE,
+          highlight = TRUE,
+          bordered = TRUE,
+          defaultColDef = colDef(align = "center"),
+          theme = customTheme)
+```
+
+
+::: callout-important
+### The threshold for a valid prediction
+
+if p>= 0.5, the output class is **1** **(positive class)** if p< 0.5, the output is **0** **(negative class)**
+:::
+
+[Based on the decision boundary, the probability **p** is compared against the threshold**(commonly 0.5)**]{.aside}
+
+The table above indicated that soccer players that had **probability(\< 0.5)** had a higher chance of being injured in the next match whereas those that a **likelihood greater or equal to 0.5(\>= 0.5)** had a **lower chance** or **probability** of being injured in the next match to be played.
+
+[The table has two columns with the first representing the soccer player's unique **ID number** and the predictions inform of probability displayed in the second column]{.aside}
+
+```{r logistic confusion Matrix}
+#| echo: false
+#| message: false
+#| warning: false
+Log_CM <- table(Actualvalue = ip_testing_set$Likelihood_of_Injury, 
+                  Predictedvalue = Injury_Predictions>0.4)
+```
+
+|                   | Predicted values |          |
+|-------------------|------------------|----------|
+| **Actual values** | **FALSE**        | **TRUE** |
+|                   | **0**            | **1**    |
+| **0**             | 6                | 144      |
+| **1**             | 5                | 145      |
+
+: Confusion matrix values
+
+The classifier made a total of **300 predictions**, with yes and no injury likelihood predicted 150 times. The results were accurately predicted at a level of **50.3%**.  
+
+## **Random Forest Classifier**
+
+Random forests are an ensemble learning method that combines multiple decision trees to produce a more robust and accurate model. It leverages the concept of bagging**(Bootstrap Aggregating)** and random feature selection to build a collection of diverse trees, which then vote or average their predictions for the final output
+
+[**Bagging(Bootstrap Aggregating):** Bagging is a technique where multiple subsets of the training data are created by sampling with replacement.Each subset is used to train a different decision tree.This helps reduce variance and prevent over fitting.]{.aside}
+
+```{r randomForest model}
+#| echo: false
+#| warning: false
+#| message: false
+set.seed(123)
+ip_rfm <- randomForest(Likelihood_of_Injury~., data = ip_training_set)
+
+```
+
+```{r randomForest predictions}
+#| echo: false
+#| message: false
+#| warning: false
+ip_rfm_pred <- predict(ip_rfm, newdata = ip_testing_set, type = "class")
+RandomForest_predictions = cbind(actual = ip_testing_set, predicted = ip_rfm_pred)
+
+## ---- creating the random forest predictions data frame ------ ###
+RandomForest_predictions_df <- as.data.frame(RandomForest_predictions)
+reactable(RandomForest_predictions_df,
+          striped = TRUE,
+          highlight = TRUE,
+          columns = list(
+            actual.Player_Age = colDef(actual.Player_Age = "Player Age"),
+            actual.Player_Weight = colDef(actual.Player_Weight = "Player Weight"),
+            actual.Player_Height = colDef(actual.Player_Height = "Player Height"),
+            actual.Previous_Injuries = colDef(actual.Previous_Injuries = "Previous Injury"),
+            actual.Training_Intensity = colDef(actual.Training_Intensity = "Training Intensity"),
+            actual.Recovery_Time = colDef(actual.Recovery_Time = "Recovery Time"),
+            actual.Likelihood_of_Injury = colDef(actual.Likelihood_of_Injury = "Likelihood of Injury"),
+            predicted = colDef(predicted = "Predicted Injury")
+          ),
+          bordered = TRUE,
+          defaultColDef = colDef(align = "left"),
+          theme = customTheme)
+RandomForest_predictions_df
+```
+
+```{r randomForest confusionMatrix}
+#| echo: false
+#| message: false
+#| warning: false
+
+iprmf_CM <- confusionMatrix(table(ip_rfm_pred, ip_testing_set$Likelihood_of_Injury))
+print(iprmf_CM)
+```
