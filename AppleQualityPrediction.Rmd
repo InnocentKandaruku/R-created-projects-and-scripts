@@ -1,0 +1,1498 @@
+---
+title: "APPLE QUALITY PREDICTION REPORT"
+author: "KANDARUKU INNOCENT."
+date: "2024-03-27"
+output: 
+  html_document:
+          theme: united
+          toc: true
+          toc_float: true
+---
+
+![apples](images/apples_getty-images-02.jpg)
+
+```{r loading libraries, setup, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+## ------------ loading in the required packages -------------------------- ####
+library("plotly")
+library("tidyverse")
+library("rpart")
+library("knitr")
+library("kableExtra")
+library("reshape2")
+library("prettydoc")
+library("DT")
+library("here")
+library("markdown")
+library("broom")
+library("ggcorrplot")
+library("Hmisc")
+library("caret")
+library("caTools")
+library("rpart.plot")
+library("randomForest")
+library("e1071")
+## -------------- loaded packages for the rmarkdown report --------------- ####
+```
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+## --- loading in the required data set ---- #####
+ap <- read.csv(here("F:/Rpractice/DATA SETS/apple_quality.csv"))
+
+```
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+## ---- data transformation ---------- #####
+ap$A_id = as.integer(ap$A_id)
+ap$Size = as.numeric(ap$Size)
+ap$Weight = as.numeric(ap$Weight)
+ap$Sweetness = as.numeric(ap$Sweetness)
+ap$Crunchiness = as.numeric(ap$Crunchiness)
+ap$Juiciness = as.numeric(ap$Juiciness)
+ap$Ripeness = as.numeric(ap$Ripeness)
+ap$Acidity = as.numeric(ap$Acidity)
+ap$Quality = as.factor(ap$Quality)
+
+```
+
+# **Introduction**
+
+## **Background**
+
+Apple quality for over centuries is considered to be the significant reasons as to why farmers generate optimum sales in the global market. These kind of apples give the nations that have large scale of the fruit's orchards to have a higher bargaining power against their potential buyers. Some of the countries that deal in this farming include the Asian countries of China, India then from the European continent include Italy and Poland. In the United States of America, the potential growers of apples include Michigan, New York and California. However there have been several methods employed to preserve the quality of apples ranging from both natural and scientific. These methods have been highly adopted by most of the potential farmers so as to maintain high sales in the competitive market. Some of these methods include temperature and humidity control(temperature between 32-39F with humidity levels of 90-95%), modified atmosphere packaging (MAP), wax coating and ethylene control. From an economist's perspective, nothing out competes the advantage of quality prediction due to the benefit of foreseeing the amount of product generation increased, constant or decreased. In the competitive global market the rise for apple quality increased in the recent years. These predictions enhance the stakeholders approach to the potential buyers. NIR spectroscopy has been the majorly used methods for apple quality predictions, evaluation and quantification. It is a technique that has the ability to provide rapid, accurate, and non-destructive analysis of apples which is additionally used in quality control and sorting operations. This method uses the assessment of both the external and internal characteristics such as color, size, shape, surface defects, soluble solids content(SSC), total dry matter concentration and the nutritional value. The analysis report presented to uses the artificial methodology of machine learning to make predictions of the apple quality based on attributes of weight, size, crunchiness, juiciness and acidity. Through the machine learning model it reduces the workers' risk of exposure to the spectrometer radiations, it is highly time saving provided accurate readings are collected and it only requires less technicality to be employed.
+
+## **Objectives**
+
+-   To predict the quality of apples fruits.
+-   To determine the factors that are highly associated with the apple quality.
+-   To evaluate the best prediction model for predicting the best apple quality.
+-   To determine the wight, size and acidity in the apple fruits.
+
+## **Hypothesis testing**
+
+-   There is a significant association between the size and weight of the apple.
+-   There is a significant association between the sweetness and crunchiness of the apple.
+-   There is a significant association between the sweetness and juiciness of the apple.
+-   There is a significant association between the sweetness and ripeness of the apple.
+-   There is a significant relationship between the sweetness and acidity of the apple.
+-   There is a significant relationship between the crunchiness and juiciness of the apple.
+-   There is a significant relationship between the crunchiness and ripeness of the apple.
+-   There is a significant relationship between the crunchiness and acidity of the apple.
+-   There is a significant relationship between the juiciness and ripeness of the apple.
+-   There is a significant association between the juiciness and acidity of the apple.
+-   There is a significant association between the ripeness and the acidity of the apple.
+
+## **Significance of the research study**
+
+This report will be used by policy makers to evaluate the methods used to predict the quality of the apples. They shall be able to identify those that could harm the health of their people and those that are beneficial to both the people and the environment. It will furthermore enable the governments' of these nations through the economic sector to easily ascertain or determine how much revenue is yielded based on the quality predictions. Other potential researchers will be able to use this report as a foundation to identify the gaps and also enhance the methods previously used to acquire more accurate predictions.
+
+## **Methodology**
+
+This section of the report comprises of the procedures that were employed during data collection, data cleaning and the how the results were extracted for more insights.
+
+# **Data source**
+
+The apple quality data set is a secondary type of data that was acquired from the online kaggle website. The data was accessed freely and extracted as a comma separated file. It comprised of 4000 apples that were evaluated against 8 variables that include size, weight, sweetness, crunchiness, juiciness, ripeness, acidity and quality.
+
+**The table below shows the data set that was extracted from the kaggle online website**
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+
+datatable(ap, options = list(
+  scrollX = TRUE,
+  scrollY = "300px",
+  ordering = FALSE,
+  paging = FALSE,
+  stripeClass = c("even","odd")
+), rownames = FALSE)
+
+```
+
+# **Data analysis**
+
+Summary and descriptive statistics will be generated through the uni variable, bi-variable and multivariate analysis. Relationships between the variables will be extracted in order to determine the effect on each of the variables employed to predict the fruit's quality. Furthermore, statistical tests that include two-sample t-tests and correlations tests will be employed to prove the **hypothesis**.
+
+# **Model evaluation**
+
+The data set was split into the **training** and **testing sets** based on the best split ratio that ranged between **(0.65-0.9)**. Training data set was used for building and evaluating the model whereas the testing data set was used for carrying out the quality predictions. The researcher used supervised type of machine learning because the data set was labelled and highly structured. Random forests, Decision trees and classification methods were employed since the dependent variable was labelled and contained two outcomes(binary).
+
+Model performance/evaluation was investigated using the confusion matrix through the identifying the key aspects such as accuracy, sensitivity, p-values and specificity.
+
+From the results obtained from the model performance the best model will be identified to rely on for best predictions.
+
+# **Data Exploration**
+
+## **Summary statistics**
+
+**Quality**
+
+![](images/quality.png)
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+quality_freq <- table(ap$Quality)
+quality_prop <- prop.table(quality_freq)
+quality_freq_and_prop <- data.frame(quality_freq = names(quality_freq), 
+                                    frequency = as.vector(quality_freq),
+                                    proportion = as.vector(quality_prop))
+kable(quality_freq_and_prop, caption = "apple quality", 
+      col.names = c("Quality","Frequency","Percentage(%)"), 
+      align = "l") %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica")
+
+```
+
+The table above indicated that majority of the apples were of a good quality**(0.501%)** and the minority were of a bad quality**(0.499%)**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+  quality_chart <- ap %>% 
+  mutate(Quality = fct_infreq(Quality)) %>% 
+  mutate(Quality = fct_rev(Quality)) %>% 
+  ggplot(aes(x = Quality)) +
+  geom_bar(fill = "skyblue") +
+  labs(title = "The column chart below shows the distribution of apple quality",
+       x = "quality", y = "frequency") +
+  theme(title = element_text(size = 9, colour = "black", face = "bold"))
+
+quality_chart_plotly <- ggplotly(quality_chart)
+quality_chart_plotly
+```
+
+The statistics representation in the column chart above indicated that good quality apples**(2004 apples)** where slightly more compared to the bad quality apples**(1996 apples)**.
+
+## **Descriptive statistics**
+
+**Size**
+
+![](images/size.png){width="800"}
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+size_stat <- ap %>% 
+  summarise(
+    Minimum = round(min(Size),1),
+    Median = round(median(Size),1),
+    Average = round(mean(Size),1),
+    STDev = round(sd(Size),1),
+    Maximum = round(max(Size),1)
+  )
+kable(size_stat, caption = "size disribution", 
+      col.names = c("Minimum","Median","Average","StandardDeviation","Maximum"),
+      align = "l") %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica")
+
+```
+
+The table above indicated that the size of the apples ranged from -7.2mm to 6.4mm with an average diameter of -0.5mm, a median size of -0.5mm and a 1.9% variation in an apple's size from the average size.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplotly(
+  size_hist <- ap %>% 
+  ggplot(aes(x = Size)) +
+  geom_histogram(binwidth = 1, fill = "navy", colour = "white") +
+  labs(title = "The histogram below shows the distribution of size in apples",
+       x = "class_width", y = "frequency") +
+  theme(title = element_text(size = 9, colour = "black", face = "bold"))
+)
+```
+
+The histogram above indicated the size of apples was normally distributed with most of them having a size ranging between -4mm and 0mm. Additionally, the level of outliers in the apple size was relatively low.
+
+**Weight**
+
+![](images/weight.jpg)
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+weight_stat <- ap %>% 
+  summarise(
+    Minimum = round(min(Weight),1),
+    Median = round(median(Weight),1),
+    Average = round(mean(Weight),1),
+    STDev = round(sd(Weight),1),
+    Maximum = round(max(Weight),1)
+  )
+kable(weight_stat, caption = "Weight disribution", 
+      col.names = c("Minimum","Median","Average","StandardDeviation","Maximum"),
+      align = "l") %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica")
+
+```
+
+The table above indicated that the weight of apples ranged from -7.1g to 5.8g, with an average weight of -1.0g, a median weight of -1.0 and a 1.6% variation in an apples weight compared to the average weight.
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ggplotly(
+  weigth_hist <- ap %>% 
+  ggplot(aes(x = Weight)) +
+  geom_histogram(binwidth = 1, fill = "darkred", colour = "white") +
+  labs(title = "The histogram below shows the distribution of weight in apples",
+       x = "class_width", y = "frequency") +
+  theme(title = element_text(size = 9, colour = "black", face = "bold"))
+)
+
+```
+
+The histogram above indicated that the weight of apples was normally distributed with most of the apples weighing between **-4g** to **0g**. The level of outliers in the weight distribution of apples was relatively low hence a better indicator of quality.
+
+**Sweetness**
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+sweetness_stat <- ap %>% 
+  summarise(
+    Minimum = round(min(Sweetness),1),
+    Median = round(median(Sweetness),1),
+    Average = round(mean(Sweetness),1),
+    STDev = round(sd(Sweetness),1),
+    Maximum = round(max(Sweetness),1)
+  )
+kable(sweetness_stat, caption = "Sweetness disribution", 
+      col.names = c("Minimum","Median","Average","StandardDeviation","Maximum"),
+      align = "l") %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica")
+```
+
+The table above indicated that the sweetness of an apple fruit ranged from -6.9 degree of sweetness to 6.4 degree of sweetness and -0.5 average degree of sweetness. This further indicated that apples that were above the average degree of sweetness were better than those below average.
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ggplotly(
+  sweetness_hist <- ap %>% 
+  ggplot(aes(x = Weight)) +
+  geom_histogram(binwidth = 1, fill = "darkgreen", colour = "white") +
+  labs(title = "The histogram below shows the distribution in apples degree of sweetness",
+       x = "class_width", y = "frequency") +
+  theme(title = element_text(size = 9, colour = "black", face = "bold"))
+)
+
+```
+
+The histogram above indicated that the degree of sweetness in the apples was normally distributed with majority of them having a degree between **-2 degree of sweetness** and **0 degree of sweetness**.
+
+**Crunchiness**
+
+![](images/crunchiness.png)
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+crunchiness_stat <- ap %>% 
+  summarise(
+    Minimum = round(min(Crunchiness),1),
+    Median = round(median(Crunchiness),1),
+    Average = round(mean(Crunchiness),1),
+    STDev = round(sd(Crunchiness),1),
+    Maximum = round(max(Crunchiness),1)
+  )
+kable(crunchiness_stat, caption = "Crunchiness disribution", 
+      col.names = c("Minimum","Median","Average","StandardDeviation","Maximum"),
+      align = "l") %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica")
+
+```
+
+The results presented in the table above indicated that the texture levels of the apples ranged from -6.1 levels to 7.6 levels with an average and median texture levels of 1, 1.4% variation in the apples texture from the average texture level.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplotly(
+  crunchiness_hist <- ap %>% 
+  ggplot(aes(x = Crunchiness)) +
+  geom_histogram(binwidth = 1, fill = "black", colour = "white") +
+  labs(title = "The histogram below shows the distribution levels in crunchiness of apples",
+       x = "class_width", y = "frequency") +
+  theme(title = element_text(size = 9, colour = "black", face = "bold"))
+)
+
+```
+
+The histogram above indicated that there was a normal distribution in the apples texture levels with most of the apples having textures levels that ranged between **0** to **4** levels of texture.
+
+**Juiciness**
+
+![](images/juiciness-01.jpg){width="603"}
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+juiciness_stat <- ap %>% 
+  summarise(
+    Minimum = round(min(Juiciness),1),
+    Median = round(median(Juiciness),1),
+    Average = round(mean(Juiciness),1),
+    STDev = round(sd(Juiciness),1),
+    Maximum = round(max(Juiciness),1)
+  )
+
+kable(juiciness_stat, caption = "Crunchiness disribution", 
+      col.names = c("Minimum","Median","Average","StandardDeviation","Maximum"),
+      align = "l") %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica")
+
+```
+
+The table above indicated that the juiciness levels ranged from -6.0 to 7.4 levels with an average level of juiciness at 0.5cl.
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ggplotly(
+  juiciness_hist <- ap %>% 
+  ggplot(aes(x = Juiciness)) +
+  geom_histogram(binwidth = 1, fill = "orange", colour = "white") +
+  labs(title = "The histogram below shows the distribution levels in juiciness of apples",
+       x = "class_width", y = "frequency") +
+  theme(title = element_text(size = 9, colour = "black", face = "bold"))
+)
+
+```
+
+The histogram above indicated that the juiciness of apples was distributed to the right(right skewed) which signified that most of the harvested apples had juice levels that ranged from 1 to -6 levels of juiciness.
+
+**Ripeness**
+
+![](images/ripeness.png)
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ripeness_stat <- ap %>% 
+  summarise(
+    Minimum = round(min(Ripeness),1),
+    Median = round(median(Ripeness),1),
+    Average = round(mean(Ripeness),1),
+    STDev = round(sd(Ripeness),1),
+    Maximum = round(max(Ripeness),1)
+  )
+
+kable(ripeness_stat, caption = "Ripeness disribution", 
+      col.names = c("Minimum","Median","Average","StandardDeviation","Maximum"),
+      align = "l") %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica")
+
+```
+
+The statistics presented in the table above indicated that the stage of ripeness in the apples ranged between **-5.9** and **7.2**, an average stage of ripeness at **0.5** with a **1.9%** deviation in each apple's stage of ripeness from the average.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplotly(
+  ripeness_hist <- ap %>% 
+  ggplot(aes(x = Ripeness)) +
+  geom_histogram(binwidth = 1, fill = "purple", colour = "white") +
+  labs(title = "The histogram below shows the distribution stages of ripeness in apples",
+       x = "class_width", y = "frequency") +
+  theme(title = element_text(size = 9, colour = "black", face = "bold"))
+)
+
+```
+
+The histogram above indicated that there was a **normal distribution** in the stages of ripeness in the apples with most of them having a ripening stage that laid between **-1** and **1** stages of ripeness.
+
+**Acidity**
+
+![](images/acidity.jpeg){width="10cm"}
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+acidity_stat <- ap %>% 
+  summarise(
+    Minimum = round(min(Acidity),1),
+    Median = round(median(Acidity),1),
+    Average = round(mean(Acidity),1),
+    STDev = round(sd(Acidity),1),
+    Maximum = round(max(Acidity),1)
+  )
+
+kable(acidity_stat, caption = "Acidity disribution", 
+      col.names = c("Minimum","Median","Average","StandardDeviation","Maximum"),
+      align = "l") %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica")
+
+```
+
+The table above indicated that the acidity levels in apples ranged between **-7** and **7.4** levels with an average of **0.1** acidity levels.
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ggplotly(
+  acidity_hist <- ap %>% 
+  ggplot(aes(x = Acidity)) +
+  geom_histogram(binwidth = 1, fill = "darkgrey", colour = "white") +
+  labs(title = "The histogram below shows the distribution of acidity levels in apples",
+       x = "class_width", y = "frequency") +
+  theme(title = element_text(size = 9, colour = "black", face = "bold"))
+)
+
+```
+
+The histogram above indicated that the acidity levels in the apples were normally distributed which implied that the acidity levels were equally distributed in these apples.
+
+## **Relationships**
+
+![](images/relationships.png){width="336"}
+
+This section of the report contained a correlogram and scatter plots to visualize the several relationships between the numeric variables.
+
+**Correlogram**
+
+```{r correlogram, echo=FALSE, message=FALSE, warning=FALSE}
+ap2 <- subset(ap, select = -c(Quality,A_id))
+ap_var <- round(cor(ap2), 2)
+correlogram_plot <- ggcorrplot(ap_var, title ="Correlation between continous variables", lab = TRUE)
+correlogram_plotly <- ggplotly(correlogram_plot)
+correlogram_plotly
+
+```
+
+The correlogram above indicated that there was a significant relationship between the apple size and weight(p = 0.00), size and sweetness(p = 0.00), size and crunchiness(p = 0.00), size and ripeness(p = 0.00), weight and sweetness(p = 0.00), weight and crunchiness (p = 0.00), weight and juiciness(p = 0.00), weight and ripeness(p = 0.00), sweetness and crunchiness(p = 0.01), sweetness and juiciness(p = 0.00), sweetness and ripeness(p = 0.00), crunchiness and juiciness(p = 0.00), crunchiness and ripeness(p = 0.00), juiciness and ripeness(p = 0.00), ripeness and acidity(p = 0.00). Additionally weight, sweetness, crunchiness and juiciness also had significant relationships with acidity (p = 0.00).
+
+However, there was no significant relationship between the size and juiciness of the apple(p = 0.23), weight and acidity(p = 0.30)
+
+**Scatter plots**
+
+In this section of the report illustrates the linear relationship between the apple weight, sweetness, crunchiness, juiciness, ripeness and acidity based on their quality.
+
+**Size and weight**
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ggplotly(
+  s_and_weight <- ap %>% 
+    ggplot(aes(x = Size, y = Weight, col = Quality)) +
+    geom_point() +
+    labs(title = "The scatter plot below shows the relationship between size and weight\n of apples",
+         x = "size", y = "weight") +
+    geom_smooth(method = "lm", colour = "black") +
+    theme(title = element_text(size = 8, colour = "black", face = "bold"))
+    )
+
+```
+
+The scatter plot above indicated that there was a linear relationship between the size and weight of apples**(-0.17)**. It further indicated that as the size of an apple increased, there as a gradual decrease in their weight.
+
+**Size and Sweetness**
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ggplotly(
+  s_and_weight <- ap %>% 
+    ggplot(aes(x = Size, y = Sweetness, col = Quality)) +
+    geom_point() +
+    labs(title = "The scatter plot below shows the relationship between size and Sweetness\n of apples",
+         x = "size", y = "Sweetness") +
+    geom_smooth(method = "lm", colour = "black") +
+    theme(title = element_text(size = 8, colour = "black", face = "bold"))
+    )
+
+```
+
+The scatter plot above indicated that the relationship between the size and sweetness of apples was linear**(-0.32)** which implied that an increase in the size of an apple caused a decrease in the sweetness levels.
+
+**Size and crunchiness**
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ggplotly(
+  s_and_weight <- ap %>% 
+    ggplot(aes(x = Size, y = Crunchiness, col = Quality)) +
+    geom_point() +
+    labs(title = "The scatter plot below shows the relationship between size and crunchiness\n of apples",
+         x = "size", y = "Crunchiness") +
+    geom_smooth(method = "lm", colour = "black") +
+    theme(title = element_text(size = 8, colour = "black", face = "bold"))
+    )
+
+```
+
+The scatter plot above indicated that there was a linear relationship between an apple's size and crunchiness(texture)**(0.17)** which implied that an increase in the size of a given apple caused an increased texture degree.
+
+**Size and Juiciness**
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ggplotly(
+  s_and_weight <- ap %>% 
+    ggplot(aes(x = Size, y = Juiciness, col = Quality)) +
+    geom_point() +
+    labs(title = "The scatter plot below shows the relationship between size and weight\n of apples",
+         x = "size", y = "Juiciness") +
+    geom_smooth(method = "lm", colour = "black") +
+    theme(title = element_text(size = 8, colour = "black", face = "bold"))
+    )
+
+```
+
+The scatter plot above indicated that there was a linear relationship between the size and juiciness of the apples**(-0.02)**.An increase in the size of a given apple led to a gradual decrease in the juiciness level.
+
+**Size and Ripeness**
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ggplotly(
+  s_and_weight <- ap %>% 
+    ggplot(aes(x = Size, y = Ripeness, col = Quality)) +
+    geom_point() +
+    labs(title = "The scatter plot below shows the relationship between size and ripeness\n of apples",
+         x = "size", y = "ripeness") +
+    geom_smooth(method = "lm", colour = "black") +
+    theme(title = element_text(size = 8, colour = "black", face = "bold"))
+    )
+
+```
+
+The scatter plot above indicated that there was a linear relationship between the apple's size and ripeness**(-0.13)** which implied that as the size of the apple increased, the level of ripeness in the apples gradually decreased.
+
+**Size and Acidity**
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ggplotly(
+  s_and_acidity <- ap %>% 
+    ggplot(aes(x = Size, y = Acidity, col = Quality)) +
+    geom_point() +
+    labs(title = "The scatter plot below shows the relationship between size and weight\n of apples",
+         x = "size", y = "acidity") +
+    geom_smooth(method = "lm", colour = "black") +
+    theme(title = element_text(size = 8, colour = "black", face = "bold"))
+    )
+
+```
+
+The scatter plot above indicated that acidity and size in the apples had a linear relationship**(0.196)** which therefore meant that the acidity levels in the apples raised with an increase in the size of an apple.
+
+**Weight and sweetness**
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ggplotly(
+  w_and_sweetness <- ap %>% 
+    ggplot(aes(x = Weight, y = Sweetness, col = Quality)) +
+    geom_point() +
+    labs(title = "The scatter plot below shows the relationship between weight and sweetness\n of apples",
+         x = "weight", y = "sweetness") +
+    geom_smooth(method = "lm", colour = "black") +
+    theme(title = element_text(size = 8, colour = "black", face = "bold"))
+    )
+
+```
+
+The scatter plot indicated that the relationship between the apple weight and degree of sweetness were linear**(-0.15)**. An increase in the weight of a given apple led to a decrease in the apple's degree of sweetness.
+
+**Weight and crunchiness**
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ggplotly(
+  w_and_crunchiness <- ap %>% 
+    ggplot(aes(x = Weight, y = Crunchiness, col = Quality)) +
+    geom_point() +
+    labs(title = "The scatter plot below shows the relationship between weight and crunchiness\n of apples",
+         x = "weight", y = "crunchiness") +
+    geom_smooth(method = "lm", colour = "black") +
+    theme(title = element_text(size = 8, colour = "black", face = "bold"))
+    )
+
+```
+
+The scatter plot above indicated that the crunchiness(texture) in the apples gradually decreased as the weight in the apples reduced\*\*(r = -0.96). Therefore the more the apples gained weight the smoother they became.
+
+**Weight and Juiciness**
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ggplotly(
+  w_and_juiciness <- ap %>% 
+    ggplot(aes(x = Weight, y = Juiciness, col = Quality)) +
+    geom_point() +
+    labs(title = "The scatter plot below shows the relationship between weight and juiciness\n of apples",
+         x = "weight", y = "juiciness") +
+    geom_smooth(method = "lm", colour = "black") +
+    theme(title = element_text(size = 8, colour = "black", face = "bold"))
+    )
+
+```
+
+The scatter plot above indicated that the juiciness levels in the apples gradually reduced as the apples gained more weight. Therefore weight had a negative impact in the juiciness of a given apple\*\*(r = -0.018)
+
+**Weight and Ripeness**
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ggplotly(
+  s_and_weight <- ap %>% 
+    ggplot(aes(x = Weight, y =Ripeness, col = Quality)) +
+    geom_point() +
+    labs(title = "The scatter plot below shows the relationship between weight and ripeness\n of apples",
+         x = "weight", y = "ripeness") +
+    geom_smooth(method = "lm", colour = "black") +
+    theme(title = element_text(size = 8, colour = "black", face = "bold"))
+    )
+
+```
+
+The scatter plot above indicated that as the apples gained more weight, the level of ripeness rapidly declined**(-0.24)**. The weight in the apples tends to reduce the level/degree of ripeness that is in a given apple.
+
+**Weight and acidity**
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ggplotly(
+  w_and_acidity <- ap %>% 
+    ggplot(aes(x = Weight, y = Acidity, col = Quality)) +
+    geom_point() +
+    labs(title = "The scatter plot below shows the relationship between weight and acidity of\n apples",
+         x = "weight", y = "acidity") +
+    geom_smooth(method = "lm", colour = "black") +
+    theme(title = element_text(size = 8, colour = "black", face = "bold"))
+    )
+
+```
+
+The scatter plot above indicated there was an association between the weight and acidity in the apples. Heavier apples had a higher level of acidity counts than the lighter apples. Therefore the weight of an apple has an effect in the acidity levels of an apple.
+
+**Sweetness and crunchiness**
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ggplotly(
+  s_and_crunchiness <- ap %>% 
+    ggplot(aes(x = Sweetness, y = Crunchiness, col = Quality)) +
+    geom_point() +
+    labs(title = "The scatter plot below shows the relationship between sweetness and crunchiness\n of apples",
+         x = "sweetness", y = "crunchiness") +
+    geom_smooth(method = "lm", colour = "black") +
+    theme(title = element_text(size = 8, colour = "black", face = "bold"))
+    )
+
+```
+
+The scatter plot above indicated that sweetness and crunchiness(texture) in the apples have a linear relationship**(-0.04)**. As the level of sweetness in the apples increased, the texture in the apples tends to gradually reduce.
+
+**Sweetness and Juiciness**
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ggplotly(
+  s_and_juiciness <- ap %>% 
+    ggplot(aes(x = Sweetness, y = Juiciness, col = Quality)) +
+    geom_point() +
+    labs(title = "The scatter plot below shows the relationship between sweetness and juiciness\nof apples",
+         x = "sweetness", y = "juiciness") +
+    geom_smooth(method = "lm", colour = "black") +
+    theme(title = element_text(size = 8, colour = "black", face = "bold"))
+    )
+
+```
+
+The scatter plot above indicated that as the level of sweetness in a given apple increased, the juiciness levels in the apple gradually increased**(0.96)**. Sweetness levels in apples had an effect on the juiciness levels of the apples.
+
+**Sweetness and Ripeness**
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ggplotly(
+  s_and_ripeness <- ap %>% 
+    ggplot(aes(x = Ripeness, y = Sweetness, col = Quality)) +
+    geom_point() +
+    labs(title = "The scatter plot below shows the relationship between ripeness and sweetness\nof apples",
+         x = "ripeness", y = "sweetness") +
+    geom_smooth(method = "lm", colour = "black") +
+    theme(title = element_text(size = 8, colour = "black", face = "bold"))
+    )
+
+```
+
+The scatter plot above indicated that there was a linear relationship between the ripeness and sweetness levels in the apples**(-0.27)** which signified that a unit increase in the level of ripeness in the apples led to a a unit decrease in their degree of sweetness.
+
+**Crunchiness and Juiciness**
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ggplotly(
+  c_and_juiciness <- ap %>% 
+    ggplot(aes(x = Crunchiness, y = Juiciness, col = Quality)) +
+    geom_point() +
+    labs(title = "The scatter plot below shows the relationship between crunchiness and juiciness\nof apples",
+         x = "crunchiness", y = "juiciness") +
+    geom_smooth(method = "lm", colour = "black") +
+    theme(title = element_text(size = 8, colour = "black", face = "bold"))
+    )
+
+```
+
+The scatter plot above indicated that there was linear and significant relationship between the apple crunchiness and juiciness**(r = -0.26, p = 0.00)**. A unit increase in the crunchiness levels of an apples indicated a significant unit decrease in the juiciness levels.
+
+**Crunchiness and Ripeness**
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ggplotly(
+  c_and_ripeness <- ap %>% 
+    ggplot(aes(x = Ripeness, y = Crunchiness, col = Quality)) +
+    geom_point() +
+    labs(title = "The scatter plot below shows the relationship between crunchiness and ripeness\nof apples",
+         x = "ripeness", y = "crunchiness") +
+    geom_smooth(method = "lm", colour = "black") +
+    theme(title = element_text(size = 8, colour = "black", face = "bold"))
+    )
+
+```
+
+The scatter plot above indicated that there was a significant and linear relationship between the the apple's ripeness and crunchiness levels**(r = -0.2, p = 0.00)**. A unit increase in the degree of ripeness in the apples led to a unit decrease in the level of crunchiness.
+
+**Crunchiness and Acidity**
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ggplotly(
+  c_and_acidity <- ap %>% 
+    ggplot(aes(x = Crunchiness, y = Acidity, col = Quality)) +
+    geom_point() +
+    labs(title = "The scatter plot below shows the relationship between crunchiness and acidity\nof apples",
+         x = "Crunchiness", y = "Acidity") +
+    geom_smooth(method = "lm", colour = "black") +
+    theme(title = element_text(size = 8, colour = "black", face = "bold"))
+    )
+
+```
+
+The scatter plot above indicated that there was a significant and linear relationship between the crunchiness and acidity levels in the apples**(r = 0.07,p = 0.00)**. A unit increase in the crunchiness degree led to a gradual unit increase in the acidity levels in the apples.
+
+**Juiciness and Ripeness**
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ggplotly(
+  j_and_ripeness <- ap %>% 
+    ggplot(aes(x = Ripeness, y = Juiciness, col = Quality)) +
+    geom_point() +
+    labs(title = "The scatter plot below shows the relationship between juiciness and ripeness\nof apples",
+         x = "ripeness", y = "juiciness") +
+    geom_smooth(method = "lm", colour = "black") +
+    theme(title = element_text(size = 8, colour = "black", face = "bold"))
+    )
+
+```
+
+The scatter plot above indicated that there was a significant and linear relationship between the ripeness and juiciness levels in the apples**(r = -0.1, p = 0.00)**. A unit increase in the degree of ripeness of the apples indicated a gradual unit decrease in the juiciness levels of the apples.
+
+**Juiciness and Acidity**
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ggplotly(
+  s_and_weight <- ap %>% 
+    ggplot(aes(x = Juiciness, y = Acidity, col = Quality)) +
+    geom_point() +
+    labs(title = "The scatter plot below shows the relationship between Juiciness and acidity\nof apples",
+         x = "Juiciness", y = "acidity") +
+    geom_smooth(method = "lm", colour = "black") +
+    theme(title = element_text(size = 8, colour = "black", face = "bold"))
+    )
+
+```
+
+The scatter plot above indicated that there was a significant and linear relationship between the apples juiciness and acidity levels**(r = 0.25, p = 0.00)**. A unit increase in the juiciness levels indicated a gradual rise in the acidity levels.
+
+**Ripeness and Acidity**
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ggplotly(
+  s_and_weight <- ap %>% 
+    ggplot(aes(x = Ripeness, y = Acidity, col = Quality)) +
+    geom_point() +
+    labs(title = "The scatter plot below shows the relationship between Ripeness and acidity\nof apples",
+         x = "ripeness", y = "acidity") +
+    geom_smooth(method = "lm", colour = "black") +
+    theme(title = element_text(size = 8, colour = "black", face = "bold"))
+    )
+
+```
+
+The scatter plot above indicated that there was a significant and linear relationship between the degree in ripeness and acidity levels in the apples**(r = -0.20, p = 0.00)**. A unit increase in the ripeness levels indicated a unit increase in the apples acidity levels.
+
+## **Average distribution**
+
+![](images/distribution.jpg)
+
+**Size and Quality**
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+Avg_distribution <- ap %>% 
+  select(Size, Quality) %>% 
+  group_by(Quality) %>% 
+  summarise(Average_size = round(mean(Size),2)) %>% 
+  arrange(desc(Average_size))
+kable(Avg_distribution, caption = "average size distribution based on apple quality", 
+      col.names = c("Quality", "Average_size"), align = "l") %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica")
+
+```
+
+The table above indicated that good quality apples had a higher average size**(-0.03)** compared to the bad quality apples**(-0.97)**.
+
+**Weight and Quality**
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+weight_distribution <- ap %>% 
+  select(Weight, Quality) %>% 
+  group_by(Quality) %>% 
+  summarise(Average_weight = round(mean(Weight),3)) %>% 
+  arrange(desc(Average_weight))
+kable(weight_distribution, caption = "average weight distribution based on apple quality", 
+      col.names = c("Quality", "Average weight"), align = "l") %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica")
+
+```
+
+The table above indicated that good quality apples had a much higher average weight**(-0.987g)** compared to the bad quality apples**(0.992)**.
+
+**Sweetness and Quality**
+
+```{r echo = FALSE, message=FALSE, warning=FALSE}
+sweetness_and_quality <- ap %>% 
+  select(Sweetness, Quality) %>% 
+  group_by(Quality) %>% 
+  summarise(Average_sweetness = round(mean(Sweetness),2)) %>% 
+  arrange(desc(Average_sweetness))
+kable(sweetness_and_quality, caption = "average degree of sweetness distribution",
+      col.names = c("Quality","Average degree of sweetness"), align = "l") %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("bordered","hover"), html_font = "heivertica")
+#print(sweetness_and_quality)
+```
+
+The table above indicated that the average degree of sweetness in the good quality apples**(0.02)** was higher than compared to the poor quality apples**(-0.96)**.
+
+**Crunchiness and Quality of apples**
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+crunchiness_and_quality <- ap %>% 
+  select(Quality, Crunchiness) %>% 
+  group_by(Quality) %>% 
+  summarise(Average_crunchiness = round(mean(Crunchiness), 2)) %>% 
+  arrange(desc(Average_crunchiness))
+kable(crunchiness_and_quality, caption = "average texture distribution of apples", 
+      col.names = c("Quality","Average level of crunchiness"),
+      align = "l") %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica")
+```
+
+The table above indicated that bad quality apples had a relatively higher average level of crunchiness**(1.00)** compared to the good quality apples**(0.97)**. Therefore the apples that had a relatively rough texture were of bad quality.
+
+**Juiciness and Quality**
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+juiciness_and_quality <- ap %>% 
+  select(Juiciness, Quality) %>% 
+  group_by(Quality) %>% 
+  summarise(Average_juiciness = round(mean(Juiciness), 2)) %>% 
+  arrange(desc(Average_juiciness))
+kable(juiciness_and_quality, caption = "Average juiciness level distribution", align = "l",
+      col.names = c("Quality","Average juiciness level")) %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica")
+  
+
+```
+
+The table above indicated that the average juiciness levels in the good quality apples were higher **(1.01)** compared to those in the bad quality apples **(0.01)**. The juiciness levels were more in the good quality apples than the bad quality apples.
+
+**Ripeness and Quality**
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+ripeness_and_quality <- ap %>% 
+  select(Ripeness, Quality) %>% 
+  group_by(Quality) %>% 
+  summarise(Average_ripeness = round(mean(Ripeness),2)) %>% 
+  arrange(desc(Average_ripeness))
+kable(ripeness_and_quality, caption = "Average distribution of ripeness in the apples",
+      align = "l", col.names = c("Quality","Average ripeness")) %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica")
+
+```
+
+The table above indicated that the average level of ripeness was relatively higher in the bad quality apples **(0.99)** compared to the good quality apples **(0.00)**.
+
+**Acidity and Quality**
+
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+acidity_and_quality <- ap %>% 
+  select(Acidity, Quality) %>% 
+  group_by(Quality) %>% 
+  summarise(Average_acidity = round(mean(Acidity), 2))
+kable(acidity_and_quality, caption = "Average acidity level distribution",align = "l",
+      col.names = c("Quality","Average acidity  level")) %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica")
+
+```
+
+The table above indicated that the average acidity levels in the bad quality apples were higher **(0.09) compared to the good quality apples** (0.06)\*\*.
+
+## **Statistical tests**
+
+![](images/tests.png)
+
+This section of the report contains the correlation and two sample tests carried out on the juiciness, ripeness, sweetness, acidity, crunchiness and quality of the apples in order to test the hypothesis.
+
+**Size and Weight**
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+size_and_weight <- cor.test(ap$Size, ap$Weight)
+cor_results_df <- data.frame(
+  Statistics = c("Correlation", "p-value"),
+  Value = c(size_and_weight$estimate, size_and_weight$p.value)
+)
+
+cor_table <- cor_results_df %>% 
+  kbl() %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica") %>% 
+  add_header_above(c("Correlation Test Results" = 3))
+cor_table
+```
+
+The table above indicated that there was a significant relationship between the size and weight in apples **(p-value = 0.00)**.
+
+**Size and Sweetness**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+size_and_sweetness_test <- cor.test(ap$Size, ap$Sweetness)
+corrleation_results_df <- data.frame(
+  Statistics = c("Correlation", "p-value"),
+  Value = c(size_and_sweetness_test$estimate, size_and_sweetness_test$p.value)
+)
+
+cor_table2 <- corrleation_results_df %>% 
+  kbl() %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica") %>% 
+  add_header_above(c("Correlation Test Results" = 3))
+cor_table2
+```
+
+The statistics presented in the table above indicated that there was a significant association between the size and sweetness in the apples **(p-value = 0.00)**.
+
+**Size and Crunchiness**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+size_and_crunchiness_test <- cor.test(ap$Size, ap$Crunchiness)
+test_result_df <- data.frame(
+  Statistics = c("Correlation", "p-value"),
+  Value = c(size_and_crunchiness_test$estimate, size_and_crunchiness_test$p.value)
+)
+cor_table3 <- test_result_df %>% 
+  kbl() %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica") %>% 
+  add_header_above(c("Correlation Test Results" = 3))
+cor_table3
+
+```
+
+The statistics in the table indicated that there was a significant relationship between the size and crunchiness **(texture)** in the apples **(p-value = 0.00)**.
+
+**Size and Juiciness**
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+size_and_juiciness_test <- cor.test(ap$Size, ap$Juiciness)
+test_result_df2 <- data.frame(
+  Statistics = c("Correlation", "p-value"),
+  Value = c(size_and_juiciness_test$estimate, size_and_juiciness_test$p.value)
+)
+cor_table4 <- test_result_df2 %>% 
+  kbl() %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica") %>% 
+  add_header_above(c("Correlation Test Results" = 3))
+cor_table4
+```
+
+The statistics in the table above indicated that there was an insignificant relationship between the size and juiciness in apples **(p-value = 0.23)**.
+
+**Size and Ripeness**
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+size_and_ripeness_test <- cor.test(ap$Size, ap$Ripeness)
+test_result_df3 <- data.frame(
+  Statistics = c("Correlation", "p-value"),
+  Value = c(size_and_ripeness_test$estimate, size_and_ripeness_test$p.value)
+)
+cor_table4 <- test_result_df3 %>% 
+  kbl() %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica") %>% 
+  add_header_above(c("Correlation Test Results" = 3))
+cor_table4
+```
+
+The statistics in the table above indicated that there was a significant relationship between the size and ripeness in the apples **(p-value = 0.00)**.
+
+**Size and Acidity**
+
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+size_and_acidity_test <- cor.test(ap$Size, ap$Acidity)
+test_result_df4 <- data.frame(
+  Statistics = c("Correlation","p-value"),
+  Value = c(size_and_acidity_test$estimate, size_and_acidity_test$p.value)
+)
+cor_table5 <- test_result_df4 %>% 
+  kbl() %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica") %>% 
+  add_header_above(c("Correlation Test Results" = 3))
+cor_table5
+```
+
+The table above indicated that there was a significant relationship between the size and acidity in the apples **(p-value = 0.00)**.
+
+**Weight and Sweetness**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+weight_and_sweetness_test <- cor.test(ap$Weight, ap$Sweetness)
+test_result_df5 <- data.frame(
+  Statistics = c("Correlation","p-value"),
+  Value = c(weight_and_sweetness_test$estimate, weight_and_sweetness_test$p.vale)
+)
+
+cor_table6 <- test_result_df5 %>% 
+  kbl() %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica") %>% 
+  add_header_above(c("Correlation Test Results" =2))
+cor_table6
+
+```
+
+The statistics in the table above indicated that there was a significant relationship between the weight and sweetness levels in apples **(p-value = -0.15)**.
+
+**Weight and Crunchiness**
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+weight_and_crunchiness_test <- cor.test(ap$Weight, ap$Crunchiness)
+wc_results_df <- data.frame(
+  Statistics = c("Correlation","p-value"),
+  Value = c(weight_and_sweetness_test$estimate, weight_and_crunchiness_test$p.value)
+) 
+wc_cor_table <- wc_results_df %>% 
+  kbl() %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica") %>% 
+  add_header_above(c("Correlation Test Results" = 3))
+wc_cor_table
+
+```
+
+The table above indicated that there was a significant relationship between the weight and crunchiness**(texture)** in apples **(p-value = 0.00)**.
+
+**Weight and Juiciness**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+weight_and_juiciness_test <- cor.test(ap$Weight, ap$Juiciness)
+wj_results_df <- data.frame(
+  Statistics = c("Correlation","p-value"),
+  Value = c(weight_and_juiciness_test$estimate, weight_and_juiciness_test$p.value)
+)
+wj_cor_table <- wj_results_df %>% 
+  kbl() %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover", "bordered"), html_font = "heivertica") %>% 
+  add_header_above(c("Correlation Test Results" = 3))
+wj_cor_table
+```
+
+The statistics in the table above indicated that there was a significant relationship between the weight and juiciness in the apples **(p-value = 0.00)**.
+
+**Weight and Ripeness**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+weight_and_ripeness <- cor.test(ap$Weight, ap$Ripeness)
+wr_results_df <- data.frame(
+  Statistics = c("Correlation","p-value"),
+  Value = c(weight_and_crunchiness_test$estimate, weight_and_crunchiness_test$p.value)
+)
+
+wr_cor_table <- wr_results_df %>% 
+  kbl() %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica") %>% 
+  add_header_above(c("Correlation Test Results" = 3))
+wr_cor_table
+```
+
+The table above indicated that there was a significant relationship between the weight and ripeness stages in apples **(p-value = 0.00)**.
+
+**Weight and Acidity**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+weight_and_acidity_test <- cor.test(ap$Weight, ap$Acidity)
+wa_results_df <- data.frame(
+  Statistics = c("Correlation", "p-value"),
+  Value = c(weight_and_acidity_test$estimate, weight_and_acidity_test$p.value)
+)
+wa_cor_table <- wa_results_df %>% 
+  kbl() %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica") %>% 
+  add_header_above(c("Correlation Test Results" = 3))
+wa_cor_table
+```
+
+The statistics in the above indicated that there was a insignificant relationship between the weight and acidity in apples **(p-value = 0.30)**.
+
+**Sweetness and Crunchiness**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+sweetness_and_crunchiness <- cor.test(ap$Sweetness, ap$Crunchiness)
+sc_result_df <- data.frame(
+  Statistics = c("Correlatio","p-value"),
+  Value = c(sweetness_and_crunchiness$estimate, sweetness_and_crunchiness$p.value)
+)
+sc_cor_table <- sc_result_df %>% 
+  kbl() %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica") %>% 
+  add_header_above(c("Correlation Test Results" = 3))
+sc_cor_table
+
+```
+
+The table above indicated that there was a significant relationship between the sweetness and crunchiness levels in apples **(p-value = 0.02)**.
+
+**Sweetness and Juiciness**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+sweetness_and_juiciness <- cor.test(ap$Sweetness, ap$Juiciness)
+sj_results_df <- data.frame(
+  Statistics = c("Correlation","p-value"),
+  Value = c(sweetness_and_juiciness$estimate, sweetness_and_juiciness$p.value)
+)
+sj_cor_table <- sj_results_df %>% 
+  kbl() %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica") %>% 
+  add_header_above(c("Correlation Test Results" = 3))
+sj_cor_table
+```
+
+The statistics in the table above indicated that there was a significant relationship between the sweetness and juiciness levels in apples **(p-value = 0.00)**.
+
+**Sweetness and Ripeness**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+sweetness_and_ripeness <- cor.test(ap$Sweetness, ap$Ripeness)
+sr_results_df <- data.frame(
+  Statistics = c("Correlation","p-value"),
+  Value = c(sweetness_and_ripeness$estimate, sweetness_and_ripeness$p.value)
+)
+sr_cor_table <- sr_results_df %>% 
+  kbl() %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica")
+sr_cor_table
+```
+
+The table above indicated that there was a significant relationship between the sweetness and ripeness in the apples **(p-value = 0.00)**.
+
+**Sweetness and Acidity**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+sweetness_and_acidity <- cor.test(ap$Sweetness, ap$Acidity)
+sa_results_df <- data.frame(
+  Statistics = c("Correlation","p-value"),
+  Value = c(sweetness_and_acidity$estimate, sweetness_and_acidity$p.value)
+)
+sa_cor_table <- sa_results_df %>% 
+  kbl() %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica") %>% 
+  add_header_above(c("Correlation Test Results" = 3))
+sa_cor_table
+```
+
+The statistics presented in the table above indicated that there was a significant relationship between the sweetness and acidity levels in the apple fruits **(p-value = 0.00)**.
+
+**Crunchiness and Juiciness**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+crunchiness_and_juiciness_test <- cor.test(ap$Crunchiness, ap$Juiciness)
+cj_results_df <- data.frame(
+  Statistics = c("Correlation", "p-value"),
+  Value = c(crunchiness_and_juiciness_test$estimate, crunchiness_and_juiciness_test$p.value)
+)
+cj_cor_table <- cj_results_df %>% 
+  kbl() %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica") %>% 
+  add_header_above(c("Correlation Test Results" = 3))
+cj_cor_table
+
+```
+
+The statistics in the table above indicated that there was a significant relationship between the crunchiness**(texture)** and the juiciness levels in apples **(p-value = 0.00)**.
+
+**Crunchiness and Ripeness**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+crunchiness_and_ripeness_test <- cor.test(ap$Crunchiness, ap$Ripeness)
+cr_results_df <- data.frame(
+  Statistics = c("Correlation","p-value"),
+  Value = c(crunchiness_and_ripeness_test$estimate, crunchiness_and_ripeness_test$p.value)
+)
+cr_cor_table <- cr_results_df %>%
+  kbl() %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica") %>% 
+  add_header_above(c("Correlation Test Results" = 3))
+cr_cor_table
+```
+
+The table above indicated that there was a significant relationship between the crunchiness and ripeness levels in apples **(p-value = 0.00)**
+
+**Crunchiness and Acidity**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+crunchiness_and_acidity <- cor.test(ap$Crunchiness, ap$Acidity)
+ca_result_df <- data.frame(
+  Statistics = c("Correlation","p-value"),
+  Value = c(crunchiness_and_acidity$estimate, crunchiness_and_acidity$p.value)
+)
+ca_cor_table <- ca_result_df %>% 
+  kbl() %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica") %>% 
+  add_header_above(c("Correlation Test Result" = 3))
+ca_cor_table
+
+```
+
+The statistics presented in the table above indicated that there was a significant relationship between the crunchiness or texture levels of apples and the acidity levels in apples **(p-value = 0.00)**
+
+**Juiciness and Ripeness**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+juiciness_and_ripeness_test <- cor.test(ap$Juiciness, ap$Ripeness)
+jr_result_df <- data.frame(
+  Statistics = c("Correlation","p-value"),
+  Value = c(juiciness_and_ripeness_test$estimate, juiciness_and_ripeness_test$p.value)
+)
+jr_cor_table <- jr_result_df %>% 
+  kbl() %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica") %>% 
+  add_header_above(c("Correlation Test Result" = 3))
+jr_cor_table
+```
+
+The statistics in the table above indicated that there was a significant relationship between the juiciness and ripeness levels in apples **(p-value = 0.00)**.
+
+**Juiciness and Acidity**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+juiciness_and_acidity_test <- cor.test(ap$Juiciness, ap$Acidity)
+ja_result_df <- data.frame(
+  Statistics = c("Correlation", "p-value"),
+  Value = c(juiciness_and_acidity_test$estimate, juiciness_and_acidity_test$p.value)
+)
+ja_cor_table <- ja_result_df %>% 
+  kbl() %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica") %>% 
+  add_header_above(c("Correlation Test Result" = 3))
+ja_cor_table
+```
+
+The statistics presented in the table above indicated that there was a significant relationship between the juiciness and acidity levels in the apples **(p-value = 0.00)**.
+
+**Ripeness and Acidity**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ripeness_and_acidity <- cor.test(ap$Ripeness, ap$Acidity)
+ra_result_df <- data.frame(
+  Statistics = c("Correlation","p-value"),
+  Value = c(ripeness_and_acidity$estimate, ripeness_and_acidity$p.value)
+)
+ra_cor_table <- ra_result_df %>% 
+  kbl() %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica") %>% 
+  add_header_above(c("Correlation Test Results" = 3))
+ra_cor_table
+```
+
+The table above indicated that there was a significant relationship between the ripeness and acidity levels in apples **(p-value = 0.00)**.
+
+# **Data Modelling**
+
+This section of the report contains the models used to model the apple data set in order to make it well suited for generating predictions that were highly accurate. Predicted and actual values were both indicated for easier reference by the researcher and other potential readers or policy makers. It additionally contains the model evaluation results acquired from each specific model.
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+## -- splitting up the data set ---- #####
+set.seed(123)
+apples_split <- sample.split(ap$Quality, SplitRatio = 0.8)
+train_apples <- subset(ap, apples_split == TRUE)
+test_apples <- subset(ap, apples_split == FALSE)
+```
+
+## **Classification model**
+
+A machine learning algorithm that predicts or assigns categories or labels to new data based on patterns learned from labelled training data
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+cl_model <- rpart(Quality ~ Size + Weight + Sweetness + Crunchiness +
+                    Juiciness + Ripeness + Acidity,
+                  data = train_apples, method = "class")
+cl_prediction <- predict(cl_model, test_apples, type = "class")
+```
+
+**Below is the complete data set that illustrates the model predictions**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+## --- binding up the actual data and predicted data ---- ###
+actual_and_predicted <- cbind(actual = test_apples, predicted = cl_prediction)
+actual_and_predicted_df <- as.data.frame(actual_and_predicted)
+datatable(actual_and_predicted_df, options = list(
+  scrollX = TRUE,
+  scrollY = "300px",
+  ordering = FALSE,
+  paging = FALSE,
+  stripeClass = c("even","odd")
+), rownames = FALSE)
+```
+
+**Confusion Matrix of the classification model**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+cl_matrix <- confusionMatrix(test_apples$Quality, cl_prediction )
+```
+
+|             | Actual |      |
+|-------------|--------|------|
+| Predictions | bad    | good |
+| bad         | 256    | 143  |
+| good        | 57     | 344  |
+
+The classifier made an accuracy of **75%** and a total of **800** predictions. Out of the 800 cases, it predicted **good** 401 times and **bad** 399 times.It indicated that the model predicted **256 apples** to be of **bad quality** which was in favor of the actual results and **143 apples** were predicted to be of **bad quality** which was contrary to the actual results that referenced them being of **good quality**.
+
+**57 apples** were predicted to be of good quality yet the actual data referenced them as **bad quality apples** and **344 apples** aligned with both the model predictions and actual data reference of being **good quality** apples.
+
+## **Decision Trees**
+
+This is a machine learning algorithm that recursively splits the data based on features, creating a tree like structure of decisions. Each node in the tree represents a feature, and the branches represent possible values or outcomes.
+
+**The diagram below illustrates a decision tree used to predict the quality of apples**.
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+apple_decisionTree <- rpart.plot(cl_model, type = 3, fallen.leaves = FALSE, cex = 0.65)
+
+```
+
+The decision tree above indicated that apples that had juiciness**(\< -0.33)** and a size**(\< -0.86)**, proportion of **0.13** were predicted to be of a **bad quality** whereas those that had a size**(\> -0.86)** and a crunchiness**(\< -0.0073)** had a proportion of **0.02** predicted to be of **good quality**.
+
+Apples that had juiciness**(\< -0.33)**, size**(\> -0.86)**, crunchiness**(\>= 0.0073)** with a far less juiciness level**(\< -1.6)** and a weight**(\< 0.64)** had a **0.07** proportion of the apples predicted to be of **bad quality** while those that had a weight**(\> 0.64)** had a proportion of **0.01** predicted to be **good quality apples**.With a juiciness level**(\>= -1.6)**, acidity**(\< -1.1)** had **0.02** of the apples predicted to be of **bad quality** while those that had acidity**(\>= -1.1)** had **0.07** of the apples predicted to be of **good quality**.
+
+Additionally, the right hand side of the decision tree indicated that juiciness**(\>= -0.33)** with a degree of ripeness**(\>= 1.7)**, sweetness**(\< 1.1)** and a size**(\< 1.4)** had a proportion of **0.12 apples** predicted to be of **bad quality** while those that had size**(\>= 1.4)**, a proportion of **0.02 apples** were predicted to be of **good quality**.
+
+Finally, apples that had juiciness**(\>= -0.33)**, ripeness degree**(\< 1.7)**, an acidity level**(\< 2.1)** had a proportion of **0.39 apples** predicted to be of **good quality** whereas those that had acidity levels**(\>= 2.1)** with a size**(\< -0.48)** had a proportion of **0.05 apples** predicted to be **bad quality** and those had a size**(\>= -0.48)** had a **0.07** proportion of the apples predicted to be of **good quality**.
+
+## **Random Forests**
+
+This is an ensemble learning technique based on decision trees. This creates multiple decision trees during training and combines their predictions to improve accuracy and reduce over fitting.
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+set.seed(123)
+Apples_rmf <- randomForest(Quality ~ Size + Weight + Sweetness + Crunchiness + 
+                             Juiciness + Ripeness +
+                             Acidity, data = train_apples)
+
+```
+
+**Random forest predictions**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+Apples_rmf_pred <- predict(Apples_rmf, newdata = test_apples, type = "class")
+```
+
+**The table below shows the actual and predicted categories of the apple quality**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+rmf_ap <- cbind(actual = test_apples, predicted = Apples_rmf_pred)
+rmf_ap_df <- as.data.frame(rmf_ap)
+datatable(rmf_ap_df, options = list(
+  scrollX = TRUE,
+  scrollY = "300px",
+  ordering = FALSE,
+  paging = FALSE,
+  stripeClass = c("even","odd")
+), rownames = FALSE)
+```
+
+**Random Forest algorithm Confusion Matrix**
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+rmf_cm <- confusionMatrix(table(Apples_rmf_pred, test_apples$Quality))
+
+```
+
+|             | Actual |      |
+|-------------|--------|------|
+| Predictions | bad    | good |
+| bad         | 340    | 27   |
+| good        | 59     | 374  |
+
+The results presented by the confusion matrix generated by the random forest algorithm indicated that there was a total of **800** predictions. Out of the 800 apple predictions, **bad quality** apples were **340 apples** were predicted to be of bad quality when in actual sense they were of bad quality whereas **27 apples** were predicted to be of bad quality yet the actual data indicated them as good quality apples. A prediction of **59 apples** were generated by the model indicated that they were good quality apples yet the data indication was that these were bad quality apples.And **374 apples** were predicted to be of good quality which rhymed with the exact number of good quality apples in the data set. The model generated **89.25%** of the predictions accurate hence above the moderate level.
+
+## **Naive Bayes**
+
+Naive Bayes classifier is a simple probabilistic classifier based on applying Bayes theorem with strong independence assumptions between the features.
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+set.seed(123)
+Apples_nb <- naiveBayes(Quality ~ Size + Weight + Sweetness + Crunchiness + 
+                          Juiciness + 
+                          Ripeness + Acidity, data = train_apples)
+
+```
+
+The results generated by the **Naive Bayes algorithm** indicated that there was an equal chance of predicting both bad and good quality apples**(Prob = 0.5)**. Furthermore, the average size of bad quality apples**(-0.99)** was predicted to be relatively lower than good quality apples **(-0.06)**, the average weight in the bad quality apples**(-0.99)** was predicted to be lower than the good quality apples **(-0.95)**.Based on sweetness, the average level in bad quality apples**(-0.97)** was lower than good quality apples**(0.02)**. The average crunchiness levels in good quality apples was predicted to be higher in bad quality apples**(0.98)** compared to the good quality apples**(0.94)**.
+
+The average juiciness levels in the good quality apples was predicted to be higher**(1.0)** than that in the bad quality apples**(0.008)**, average ripeness levels were predicted to be higher in the bad quality apples**(1.0)** and lower in the good quality apples**(-0.012)**. Acidity average levels in the bad quality apples was predicted to be higher**(0.1)** compared to the good quality apples**(0.06)**.
+
+**Naive Bayes predictions**
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+Apples_nb_pred <- predict(Apples_nb, test_apples)
+Apples_nb_pred_df <- as.data.frame(Apples_nb_pred)
+
+datatable(Apples_nb_pred_df, options = list(
+  scrollX = TRUE,
+  scrollY = "300px",
+  ordering = FALSE,
+  paging = FALSE,
+  stripeClass = c("even","odd")
+ ), rownames = FALSE)
+```
+
+**Confusion Matrix**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+nb_cm <- confusionMatrix(table(Apples_nb_pred, test_apples$Quality))
+
+```
+
+Results presented in confusion matrix indicated that the predictions were **74.2%** accurate. **301 apples** were of bad quality which allied with the model predictions whereas **108** of the apples were predicted to be of a bad quality yet they are indicated as good quality apples. Furthermore, the model had correct predictions of **293 apples** which were correctly indicated as good quality in the data set while **98** of the apples were predicted to be of good quality yet they were of bad quality.
+
+# **Conclusion**
+
+In conclusion, the best machine learning model that was used to predict the apple quality was the random forest algorithm**(Accuracy = 89.25%)**. Majority of the apples were of good quality**(2004 apples)**, the juiciness, size, weight, sweetness, crunchiness, ripeness and acidity in the apples were **normally distributed**, the predictor variables indicated a linear relationship with the apple quality, the average distribution in weight, size, juiciness, acidity and sweetness levels were higher in the good quality apples compared to the bad quality apples.
+
+# **Recommendation**
+
+The researcher based on the provided apples' data set to make the following recommendation for better quality production.
+
+The government and policy formulator should encourage farmers to use natural fertilizers that will boost the growth in the apples.
+
+Farmers should be encouraged to employ agricultural mechanization practices to improve on the timing of the apples growth stages in order to have accurate levels of weight, size, juiciness and sweetness.
+
+Highly improved storage facilities should be provided to the farmers in order to increase the sustainability and quality of harvested apples before they reach the market.
+
+# **References**
+
+# **Appendix**
+
+## **Appendix 1**
+
+The image below shows the use of a spectrometer to predict the quality of apples on a given farm land.
+
+![Apple quality prediction](images/apple3.jpeg){width="205"}
+
+## **Appendix 2**
+
+The image below shows the internal operation of a spectrometer.
+
+![](images/apple2.jpeg){width="266"}
+
+## **Appendix 3**
+
+The image below shows the countries that deal in apple production.
+
+![apple farming distribution](images/500px-Countries_by_apple_production_in_2016.png){width="694"}
