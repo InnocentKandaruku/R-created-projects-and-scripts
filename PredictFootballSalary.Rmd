@@ -1,0 +1,458 @@
+---
+title: "Football Salary prediction"
+author: "KANDARUKU INNOCENT."
+date: "2024-02-26"
+output: html_document
+---
+
+```{r setup, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+### ------------------------------ loading the required libraries ---------------------------------- ######
+library("tidyverse")
+library("plotly")
+library("here")
+library("kableExtra")
+library("reshape2")
+library("DT")
+library("Hmisc")
+library("ggcorrplot")
+library("gtable")
+library("knitr")
+library("broom")
+library("caret")
+library("caTools")
+library("rpart")
+library("rpart.plot")
+library("e1071")
+library("randomForest")
+#### --------------------------- loaded libraries required for the rmarkdown ------------------------ ######
+
+## ----------- loading the data to be used ------------- #####
+ft <- read.csv(here("F:/Rpractice/DATA SETS/SalaryPrediction.csv"))
+#View(ft)
+ft$Wage = as.numeric(ft$Wage)
+ft$Age = as.numeric(ft$Age)
+ft$League = as.factor(ft$League)
+ft$Position = as.factor(ft$Position)
+ft$Apps = as.numeric(ft$Apps)
+ft$Caps = as.numeric(ft$Caps)
+```
+
+This is a report that consists of exploratory data analysis generated from the soccer organization. It consists of 3907 players from different nations and leagues. The data was used to generate machine learning models to predict a player's salary depending on factors such as age, appearances, league the player is in, position and Caps.
+
+**The table below illustrates the data set that was used for the model generation**
+```{r echo=FALSE, warning=FALSE}
+datatable(ft, options = list(
+  scrollX = TRUE,
+  scrollY = "400px",
+  ordering = FALSE,
+  paging = FALSE,
+  stripeClass = c("even","odd")
+), rownames = FALSE)
+
+```
+
+### **Exploratory data analysis**
+This section contains the valuable insights that were generated from the vital factors that have an association with the salary of a given player.
+
+
+
+#### **Wage**
+This is the amount of pay given to a play as a reward for his services in the game played.
+```{r echo=FALSE, warning=FALSE}
+wage_stat <- ft %>% 
+  summarise(
+    Maximum = max(Wage),
+    Median = median(Wage),
+    Average = mean(Wage),
+    Minimum = min(Wage)
+    )
+kable(wage_stat, caption = "Wage descriptives") %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica")
+
+```
+
+The wage offered to the players ranged between **$1,400 to $46,427,000** with an estimated wage of **$1,367,959** and the highest amount paid was **$46,427,000** and a minimum of **$1,400**.
+
+```{r echo=FALSE, warning=FALSE}
+wage_hist <- ft %>% 
+  ggplot(aes(x = Wage)) +
+  geom_histogram(binwidth = 10000000, colour = "white", fill = "navy") +
+  labs(title = "The histogram below shows the salary distribution of the players",
+       x = "class width", y = "frequency") +
+  theme(title = element_text(size = 9, color = "black", face = "bold"))
+wage_hist_plotly <- ggplotly(wage_hist)
+wage_hist_plotly
+
+```
+
+The histogram above indicated that majority of the player's salary lied between **$0 to $20,000,000** and the minority had above **20,000,000 dollars**.
+
+#### **Age of the player**
+The age of a particular player was also recorded for salary prediction.
+```{r echo=FALSE, warning=FALSE}
+Age_stat <- ft %>% 
+    summarise(
+    Maximum = max(Age),
+    Median = median(Age),
+    Average = round(mean(Age),1),
+    Minimum = min(Age)
+    )
+kable(Age_stat, caption = "Age descriptives", align = "l",
+      col.names = c("Maximum Age","Median Age","Average Age","Minimum Age")) %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica")
+
+
+```
+
+The statistics in the table above indicated that the average age of a player was 24.1 years, with the oldest player aged 41 years and the youngest aged 18 years.
+
+```{r echo=FALSE, warning=FALSE}
+Age_hist <- ft %>% 
+  ggplot(aes(x = Age)) +
+  geom_histogram(binwidth = 5, colour = "white", fill = "brown") +
+  labs(title = "The histogram below shows the age distribution of the players",
+       x = "class width", y = "frequency") +
+  theme(title = element_text(size = 9, color = "black", face = "bold"))
+Age_hist_plotly <- ggplotly(Age_hist)
+Age_hist_plotly
+
+```
+
+The histogram above indicated that majority of the players were aged between **20 to 30** years and the minority were 40 years old and above.
+
+#### **League**
+This is the category of football that the player is currently playing in depending on the country that he is from. Some of the common leagues include Premier league, Bundesliga, La liga etc.
+Each league pays a different wage to their players. An exploratory analysis was used to check the number of players in each League.
+```{r echo=FALSE, warning=FALSE}
+league_table <- table(ft$League)
+league_prop <- prop.table(league_table)
+
+league_freq_and_prop <- data.frame(league_table = names(league_table), 
+                                      frequency = as.vector(league_table),
+                                      proportion = as.vector(league_prop))
+kable(league_freq_and_prop, caption = "League distribution table", align = "l",
+      col.names = c("League","Frequency","Percentage(%)")) %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica")
+
+```
+
+The summary statistics in the table above indicated that majority of the players were from premier league **(0.2%)**, a few from Primiera Liga **(0.19%)** and La Liga **(0.15%)**, then the minority were from Bundesliga **(0.14%)**.
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+league_barchart <- ft %>% 
+  mutate(League = fct_infreq(League)) %>% 
+  mutate(League = fct_rev(League)) %>% 
+  ggplot(aes(x = League, fill = League)) +
+  geom_bar(alpha = 0.95) +
+  labs(title = "The bar chart below shows the players distribution in the different Leagues",
+       x = "League", y = "Frequency") +
+  theme(title = element_text(size = 9, colour = "black", face = "bold")) +
+  theme(legend.position = "none")
+league_barchart_plotly <- ggplotly(league_barchart)
+league_barchart_plotly
+```
+
+The bar-chart above indicated that **Premier League** had the highest number of players compared to the rest of the other leagues.
+
+#### **Position**
+This is the players allocated number during a particular game in any given league or nation. A given player is highly specialized and qualified for this given number. some of these positions include defender, goalkeeper and striker.
+A player's wage is paid depending on their position.
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+Position_table <- table(ft$Position)
+Position_prop <- prop.table(Position_table)
+
+Position_freq_and_prop <- data.frame(Position_table = names(Position_table), 
+                                      frequency = as.vector(Position_table),
+                                      proportion = as.vector(Position_prop))
+kable(Position_freq_and_prop, caption = "League distribution table", align = "l",
+      col.names = c("League","Frequency","Percentage(%)")) %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica")
+
+```
+
+The table above indicated that majority of the players were defenders **(0.4%)**, a few were forward players **(0.2%)** and Midfilders **(0.3%)**. Minority of the players were goalkeepers **(0.1%)**.
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+Position_barchart <- ft %>% 
+  mutate(Position = fct_infreq(Position)) %>% 
+  mutate(Position = fct_rev(Position)) %>% 
+  ggplot(aes(x = Position, fill = Position)) +
+  geom_bar(alpha = 0.95) +
+  labs(title = "The bar chart below shows the players distribution in the different Leagues",
+       x = "League", y = "Frequency") +
+  theme(title = element_text(size = 9, colour = "black", face = "bold")) +
+  theme(legend.position = "none")
+Position_barchart_plotly <- ggplotly(Position_barchart)
+Position_barchart_plotly
+
+```
+
+The bar graph above indicated that defenders were more compared to Goalkeepers and Forward players.
+
+#### **Appearances (Apps)**
+This is the number of appearances made by a player in each game played.
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+Apps_stat <- ft %>% 
+    summarise(
+    Maximum = max(Apps),
+    Median = median(Apps),
+    Average = round(mean(Apps),1),
+    Minimum = min(Apps)
+    )
+kable(Apps_stat, caption = "Age descriptives", align = "l",
+      col.names = c("Maximum Appearance","Median Appearance","Average Appearance","Minimum Appearance")) %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica")
+
+```
+
+The descriptive statistics in the table above indicated that on average there were 140.1 appearances made by a player with a maximum of 715 number of appearances and 0 minimum number of appearances.
+
+```{r echo=FALSE, warning=FALSE}
+Apps_hist <- ft %>% 
+  ggplot(aes(x = Apps)) +
+  geom_histogram(binwidth = 50, colour = "white", fill = "black") +
+  labs(title = "The histogram below shows the appearance distribution of the players",
+       x = "class width", y = "frequency") +
+  theme(title = element_text(size = 9, color = "black", face = "bold"))
+Apps_hist_plotly <- ggplotly(Apps_hist)
+Apps_hist_plotly
+
+```
+
+The histogram above indicated that majority of the players made the highest number of appearances were between **0 to 400 times** whereas the minority had above 400 appearances.
+
+#### **Caps**
+These are the number of caps awarded to a player. This represents the number of times a soccer player has represented his or her country in an official international match, such as the world cup, other international competitions, or even friendlies. Essentially signifies the accumulation of appearances for the national team.
+In case a player has 50 caps, it means they have played 50 times or have made 50 appearances for their country.
+
+```{r echo=FALSE, warning=FALSE}
+Caps_stat <- ft %>% 
+    summarise(
+    Maximum = max(Caps),
+    Median = median(Caps),
+    Average = round(mean(Caps),1),
+    Minimum = min(Caps)
+    )
+kable(Caps_stat, caption = "Age descriptives", align = "l",
+      col.names = c("Maximum Caps","Median Caps","Average Caps","Minimum Caps")) %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica")
+```
+
+The table above indicated that the maximum number of caps received by a player was **180 caps** and a minimum of no cap **(0 caps)**. Further more, the average number of caps earned was **8.9 caps**.
+
+```{r echo=FALSE,warning=FALSE}
+Caps_hist <- ft %>% 
+  ggplot(aes(x = Caps)) +
+  geom_histogram(binwidth = 10, colour = "white", fill = "purple") +
+  labs(title = "The histogram below shows the distribution of caps among the soccer\nplayers",
+       x = "class width", y = "frequency") +
+  theme(title = element_text(size = 9, color = "black", face = "bold"))
+Caps_hist_plotly <- ggplotly(Caps_hist)
+Caps_hist_plotly
+
+```
+
+The histogram above indicated that majority of the soccer players had their heighest number of caps between 0 and 50 caps and the minority had caps greater than a count of 50 caps.
+
+#### **Average wage in the different leagues**
+```{r echo=FALSE, warning=FALSE}
+Avg_wage_leagues <- ft %>% 
+  select(Wage, League) %>% 
+  group_by(League) %>% 
+  summarise(Avg_wage = mean(Wage)) %>% 
+  arrange(desc(Avg_wage))
+
+kable(Avg_wage_leagues, caption = "Average wage in the different Leagues", align = "l",
+      col.names = c("League","Average wage")) %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica")
+
+```
+
+The statistics showed by the table above indicated that the average salary of premier league soccer players was higher **($233,598.0)** compared to those in La Liga **($1520234.9)**, Bundesliga**($1405219.5)**, serie A**($1336126.5)** and Ligue 1 Uber Eats **($1237426.7)**. Soccer players under the Primiera Liga had the lowest average wage **($194826.6)**.
+
+```{r echo=FALSE, warning=FALSE}
+league_cat <- ft %>% 
+  group_by(League) %>% 
+  summarise(mean_wage = mean(Wage, na.rm = TRUE)) %>% 
+  mutate(League = fct_reorder(League, mean_wage)) %>% 
+  ggplot(aes(x = mean_wage, y = League, col = League))+
+  geom_point(size = 2.5) +
+  labs(title = "The scatter plot below illustrates the average wage in the distinct League\n categories", x = "Average wage", y = "League") +
+  theme(title = element_text(size = 9, colour = "black", face = "bold"))
+league_cat_plotly <- ggplotly(league_cat)
+league_cat_plotly
+
+```
+The graph scatter plot above indicated that premier league players had the highest average salary and those from the Primiera Liga had the least average.
+
+```{r echo=FALSE, warning=FALSE}
+Avg_wage_positions <- ft %>% 
+  select(Wage, Position) %>% 
+  group_by(Position) %>% 
+  summarise(Avg_position_wage = mean(Wage)) %>% 
+  arrange(desc(Avg_position_wage))
+
+kable(Avg_wage_positions, caption = "Average wage in the different Leagues", align = "l",
+      col.names = c("Position","Average wage")) %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica")
+
+```
+The statistics in the table above indicated that midfielders on average earned a higher wage **($1,603,824)** compared to a defender **($1,299,439)** and a forward player **($1,342,720).
+A goal keeper on average earned the least wage **($1,017,645)**.
+
+```{r echo=FALSE, warning=FALSE}
+position_cat <- ft %>% 
+  group_by(Position) %>% 
+  summarise(mean_position_wage = mean(Wage, na.rm = TRUE)) %>% 
+  mutate(Position = fct_reorder(Position, mean_position_wage)) %>% 
+  ggplot(aes(x = mean_position_wage, y = Position, col = Position))+
+  geom_point(size = 4) +
+  labs(title = "The scatter plot below illustrates the average wage in the distinct Position\n categories", x = "Average wage", y = "Position") +
+  theme(title = element_text(size = 9, colour = "black", face = "bold"))
+  
+position_cat_plotly <- ggplotly(position_cat)
+position_cat_plotly
+
+```
+The scatter plot above indicated that midfielders on average had a higher wage compared to goal keepers that had the least average wage.
+
+#### **Association between the caps, apps, age with the wage earned by the soccer player**
+
+This section illustrates the relationship between the continous variables using a correlogram.
+
+```{r echo=FALSE, warning=FALSE}
+ft2 <- subset(ft, select = -c(Position, Nation, League, Club))
+ft_var <- round(cor(ft2), 2)
+correlogram_plot <- ggcorrplot(ft_var, title ="Correlation between continous variables", lab = TRUE)
+correlogram_plotly <- ggplotly(correlogram_plot)
+correlogram_plotly
+
+```
+#### **Relationship between wage and age**
+```{r echo=FALSE,warning=FALSE, message=FALSE}
+scatter_1 <- ft %>% 
+  ggplot(aes(x = Age, y = Wage)) +
+  geom_point(size = 3, colour = "skyblue") +
+  geom_smooth(method = "lm", colour = "black", se = FALSE) +
+  labs(title = "The scatter plot below illustrates the relationship between age and wage\nof a player", x = "age", y = "wage") +
+  theme_dark() +
+  theme(title = element_text(size = 9, colour = "black", face = "italic")) 
+  
+scatter1_plotly <- ggplotly(scatter_1)
+scatter1_plotly
+```
+
+The scatter plot above indicated that there was a significant increase in wage with a unit increase in age of a soccer player.
+
+#### **Wage and Appearances**
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+scatter_2 <- ft %>% 
+  ggplot(aes(x = Apps, y = Wage)) +
+  geom_point(size = 3, colour = "lightgreen") +
+  geom_smooth(method = "lm", colour = "black", se = FALSE) +
+  labs(title = "The scatter plot below illustrates the relationship between Apps and wage\nof a player", x = "Apps", y = "wage") +
+   theme_dark() +
+  theme(title = element_text(size = 9, colour = "black", face = "italic")) 
+ 
+scatter2_plotly <- ggplotly(scatter_2)
+scatter2_plotly
+
+```
+The scatter plot above indicated that the more the appearances made by a soccer player, the higher the wage received.
+
+#### **Wage and the Caps received by the player**.
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+scatter_3 <- ft %>% 
+  ggplot(aes(x = Caps, y = Wage)) +
+  geom_point(size = 3, colour = "red") +
+  geom_smooth(method = "lm", colour = "black", se = FALSE) +
+  labs(title = "The scatter plot below illustrates the relationship between Caps and wage\nof a player", x = "Caps", y = "wage") +
+   theme_dark() +
+  theme(title = element_text(size = 9, colour = "black", face = "italic")) 
+ 
+scatter3_plotly <- ggplotly(scatter_3)
+scatter3_plotly
+
+```
+The scatter plot above indicated that the higher the caps earned by a player, the greater the wage received.
+
+#### **MODELLING**
+This section contains the generation of a machine learning model its summary statistics and predictions of a players salary.
+
+#### **Linear regression**
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+### ------ dividing the attained data set into the training and testing set ------------- #####
+my_split <- sample.split(ft$Wage, SplitRatio = 0.7)
+
+Linear_train <- subset(ft, my_split == TRUE)
+Linear_test <- subset(ft, my_split == FALSE)
+
+L_model <- lm(Wage ~ Age + League + Position + Apps + Caps, data = Linear_train)
+tidy_summary <- tidy(L_model)
+tidy_result <- as.data.frame(tidy_summary)
+datatable(tidy_result, options = list(
+  scrollX = TRUE,
+  scrollY = "400px",
+  paging = FALSE,
+  ordering = FALSE,
+  stripeClass = c("even","odd")
+), rownames = FALSE)
+```
+
+The table above indicated that the factors age (p.value = 2.9e-12), Primier League **(p.value = 1.2e-13)**, Primiera Liga **(p.value = 0.01)**, Appearances **(p.value = 1.7e-22)** and Caps **(p.value = 1.2e-116)** had significant relationships with the wage earned by the soccer player. The position of a soccer player and those that were in Leagues of Ligue 1 Uber Eats and Serie A did not have any significant association with the wage paid to the player.
+
+**Model predictions under Linear regression**
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+L_model_predictions <- predict(L_model, data = Linear_test)
+final <- cbind(actual = Linear_test$Wage, predicted = L_model_predictions)
+my_final <- as.data.frame(final)
+datatable(my_final, 
+          options = list(
+            scrollX = TRUE,
+            scrollY = "400px",
+            ordering = FALSE,
+            paging = FALSE,
+            stripeClass = c("even","odd")
+  
+), rownames = FALSE)
+```
+**Test data set that was used**
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+datatable(Linear_test, options = list(
+  scrollX = TRUE,
+  scrollY = "400px",
+  paging = FALSE,
+  ordering = FALSE,
+  stripeClass = c("even","odd")
+), rownames = FALSE)
+
+```
+
+**Root Mean Square**
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+Error <- cbind(my_final, error = my_final$actual - my_final$predicted)
+rmse <- sqrt(mean((Error$error)^2))
+kable(rmse, caption = "root mean square", align = "l",
+      col.names = c("Root Mean Square")) %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica")
+
+```
+
+The table above indicated that there was significant deviation of 2,604,978 dollars from the predicted wages of a soccer player.
+
+
+
+
+
+
+
