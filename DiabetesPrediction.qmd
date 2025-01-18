@@ -1,0 +1,85 @@
+---
+title: "DIABETS ANALYSIS AND PREDICTION"
+author: "KANDARUKU INNOCENT"
+date: "07-07-2024"
+output:
+  html_document:
+    theme: united
+    toc: true
+    toc_float: true
+---
+
+![A picture of a patient under treatment](images/Diabetes.jpg)
+
+```{r loading libraries}
+#| echo: false
+#| message: false
+#| warning: false
+
+
+library("tidyverse")
+library("caret")
+library("plotly")
+library("kableExtra")
+library("caTools")
+library("reshape2")
+library("e1071")
+library("here")
+library("DT")
+library("reactable")
+```
+
+```{r loading dataset}
+#| echo: false
+#| warning: false
+#| message: false
+
+#### --------------- Reading the data set from the computer memory ------------------- #####
+DB <- read.csv("F:/Rpractice/DATA SETS/diabetes.csv")
+```
+
+# **Sample of the data set used**
+
+```{r data sample}
+#| echo: false
+#| message: false
+#| warning: false
+
+### ---------------- Creating the reactable function ----------------- ####
+DB_table_theme <- reactableTheme(
+  color = "black",
+  backgroundColor = "white",
+  stripedColor = "#f7f7f7",
+  highlightColor = "#e5e5e5",
+  borderColor = "#cccccc",
+  cellPadding = "8px 12px"
+)
+
+#### ----------------- Displaying the data acquired from the memory ------------------- ######
+DB_df <- data.frame(DB)
+reactable(DB_df, 
+          striped = TRUE,
+          highlight = TRUE,
+          bordered = TRUE, 
+          defaultColDef = colDef(align = "left"),
+          theme = DB_table_theme)
+  
+```
+
+# **Exploratory Data Analysis**
+
+## **Categorical variables**
+
+### **Var1**
+
+```{r}
+
+```
+
+## **Numerical variables**
+
+### **Var1**
+
+```{r}
+
+```
