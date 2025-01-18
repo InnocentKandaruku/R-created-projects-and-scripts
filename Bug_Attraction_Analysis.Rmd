@@ -1,0 +1,487 @@
+---
+title: "BUG ATTRACTION"
+author: "KANDARUKU INNOCENT."
+date: "2024-11-02"
+output: 
+        html_document:
+                theme: united
+                  toc: TRUE
+                  toc_float: TRUE
+---
+
+![Picture captured during experimentation](Capture.PNG)
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+##### ---------------- Loading in the required libraries --------------------- ######
+library("tidyverse")
+library("here")
+library("DT")
+library("knitr")
+library("plotly")
+library("caret")
+library("caTools")
+library("kableExtra")
+library("Hmisc")
+library("ggcorrplot")
+library("reshape2")
+library("plotly")
+library("caret")
+library("caTools")
+library("broom")
+```
+
+## About
+
+You’ve probably seen that insects seem to be attracted to artificial lights at night. Insects appear to be most attractive to blue and ultraviolet light, and less attracted by red or infrared light. Previously, most outdoor high-intensity lighting—such as for street lights and parking lots—used sodium vapor lamps, a type of lamp that is very efficient for large lights but also produces a characteristic orange glow. Many cities and countries, however, are moving towards using light-emitting diodes (LEDs) in outdoor lighting, since they have become affordable and highly efficient. LED lights promise to require less maintenance and cost less to operate. Also, they are not limited to the orange glow of sodium vapor lamps—they can produce whiter light. Some research suggests this is beneficial for safety, since whiter light makes roads and sidewalks easier to see. But it can also have some harms. One possible harmful effect is to insects. If LEDs can produce whiter or bluer light, they may be more attractive to insects at night, disrupting their circadian rhythms and potentially even leading to their deaths as they circle lights endlessly. This data comes from a study intended to understand how what lights attract insects and what types of insects are most affected, to study the problem. The researchers set up light traps: each trap contained a light bulb and captured any insect attracted by the light to enter the trap. The researchers conducted their experiment by setting up six light traps, each with a different light bulb. (One trap contained no bulb, as a control.) The traps were set up each evening at sunset and then checked in the morning after sunrise, and the insects collected identified and counted. Traps were set up at three different locations (one urban, two rural). Relevant weather conditions were recorded. The experiment was repeated 32 times: 16 times at the urban location and 8 times at each rural location. This allowed the researchers to rotate which site (within an individual location) each trap was placed in, and allowed them to collect data under varying weather and moon phases. (Since the moon is bright in the night sky, the presence of a bright moon could presumably affect the results.)
+
+```{r Loading Bugs attraction, echo=FALSE, message=FALSE, warning=FALSE}
+
+## ------------ loading in the data set --------------------------- #####
+BA <- read.csv(here("F:/Rpractice/DATA SETS/BUGS_ATTRACTION.csv"))
+```
+
+# Sample of the data used for the bug attraction research
+
+```{r data_sample, echo=FALSE, message=FALSE, warning=FALSE}
+
+## ------ creating the bugs attraction data frame ----------- ####
+BA_dataframe <- as.data.frame(BA)
+
+#### --------------- Displaying the data set using the DT library ---------------- ######
+datatable(BA_dataframe, options = list(
+  scrollX = TRUE,
+  scrollY = "400px",
+  ordering = FALSE,
+  paging = FALSE,
+  stripeClass = c("even","odd")
+), rownames = FALSE)
+
+
+```
+
+```{r Data transformation, echo=FALSE, warning = FALSE, message=FALSE}
+
+##---- Required predictors ----##
+# - location
+# - moon phase (% moon visible)
+# - mean temperature
+# - mean humidity
+
+##### ---------- categorical and numeric factors ------------------ ####
+BA$Total = as.numeric(BA$Total)
+BA$Light.Type = as.factor(BA$Light.Type)
+BA$Location = as.factor(BA$Location)
+BA$Mean.Temp = as.numeric(BA$Mean.Temp)
+BA$Mean.Humidity = as.numeric(BA$Mean.Humidity)
+BA$X..Moon.Visible = as.numeric(BA$X..Moon.Visible)
+```
+
+# EXPLORATORY DATA ANALYSIS
+
+This section of the report consists of the uni variate and bi-variate analysis of the predictor variables used in the research project. Additionally, summary and descriptive statistics was carried out so as to have a comprehensive view of the variables. Graphical illustrations were also used to aid in the further understanding of insect distribution the assigned predictor variables.
+
+## Dependent variable
+
+### Total
+
+#### Total descriptions
+
+The total number of insects was analysed based on location, moon phase, average temperature and humidity.
+
+```{r Total, echo=FALSE, warning=FALSE, message=FALSE}
+Total_description <- BA %>%
+  summarise(
+    Minimum = min(Total),
+    Average = round(mean(Total),2),
+    Median = median(Total),
+    Maximum = max(Total)
+  )
+
+kable(Total_description, caption = "Total summary statistics",
+      col.names = c("Minimum","Average","Median","Maximum"),
+      align = "l")|>
+  kable_paper("striped")|>
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica")
+
+```
+
+The table above indicated that on average **27.72 insects** were collected, with a maximum number of **222 insects** and the least captured was none.
+
+#### Total graphical illustration
+
+```{r histogram, echo=FALSE, warning=FALSE, message=FALSE}
+
+### ------- creating a histogram to illustrate the distribution ---------- #####
+Total_hist <- BA %>% 
+  ggplot(aes(x = Total)) +
+  geom_histogram(binwidth = 20, fill = "black", colour = "white") +
+  labs(title = "Distribution of insects captured",
+       x = "class width", y = "frequency", 
+       caption = "fig-1: graph shows distribution in the number of insects") +
+  theme(title = element_text(size = 9, colour = "black", face = "bold"))
+  
+
+print(Total_hist)
+```
+
+The graph in **fig-1** above, showed that the distribution of the total number of insects captured was skewed to the left. This implied that majority of the insects captured were between **0** and **50 insects** and minority of the insects were more than 50.
+
+## Independent variables
+
+These are the factors that affect the insect activity. The predictor variables include the location, moon phase, mean temperature and the mean humidity.
+
+### Location
+
+This consists of the data captured from the different places the light trap was placed. - **BG** : Botanical Garden - **LK** : La Kretz field station - **Stunt** : stunt ranch \#### Location descriptives
+
+```{r location summary, echo=FALSE, warning=FALSE, message=FALSE}
+Location_Fr <- table(BA$Location)
+Location_proportion <- prop.table(Location_Fr)
+Location_percentage <- round(Location_proportion*100, 2)
+
+### ------------ creating the location summary statistics data frame ------------ #####
+Location_table <- data.frame(Location_Fr = names(Location_Fr),
+                             frequency = as.vector(Location_Fr),
+                             percentage = as.vector(Location_percentage))
+
+kable(Location_table, caption = "Location summary statistics",
+      col.names = c("Location","Frequency","Percentage(%)"),
+      align = c("l","r","r"))|>
+  kable_paper("striped")|>
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica")
+```
+
+The table above indicated that majority of the insects were captured at BG**(50.53%)** whereas the rest were captured at LK and Stunt each with a respective percentage of **24.74%**.
+
+#### Location graphical illustration
+
+```{r location_graph, echo=FALSE, warning=FALSE, message=FALSE}
+Location_graph <- BA %>% 
+  mutate(Location = fct_infreq(Location)) %>% 
+  mutate(Location = fct_rev(Location)) %>% 
+  ggplot(aes(x = Location, fill = Location)) +
+  geom_bar()+
+  labs(title = "Insect distribution per location",
+      x = "Location", y = "Frequency", caption = "fig-2: graph showing insects captured in different locations")+
+  theme(title = element_text(size = 9, colour = "black", face = "bold")) +
+  theme(legend.position = "bottom")
+
+### ---- printing out the column chart ---------- ####
+print(Location_graph)
+```
+
+### Moon phase
+
+This refers to the percentage of moon visibility.
+
+#### Moon phase descriptives
+
+```{r moon phase, echo=FALSE, warning=FALSE, message=FALSE}
+Moon_phase <- BA %>% 
+  summarise(
+    Minimum = min(X..Moon.Visible),
+    Median = median(X..Moon.Visible),
+    Average = round(mean(X..Moon.Visible), 2),
+    Maximum = max(X..Moon.Visible)
+  )
+
+kable(Moon_phase, caption = "Distribution in the percentage moon visibility",
+      col.names = c("Minimum percentage","Median percentage","Average percentage","Maximum percentage"),
+      align = "l") %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica")
+
+```
+
+The table above indicated that the lowest percentage of moon visibility was **9.9%** and the highest was 99.8% with an average of **61.65%**.
+
+#### Moon phase histogram
+
+```{r moon phase hist, echo=FALSE, message=FALSE, warning=FALSE}
+Moon_phase_hist <- BA %>% 
+  ggplot(aes(x = X..Moon.Visible))+
+  geom_histogram(binwidth = 20, colour = "white", fill = "navy") +
+  labs(title = "Moon visibility distribution", x = "Class width", y = "frequency",
+       caption = "fig-3: graph showing distribution in the moon visibility percentage") +
+  theme(title = element_text(size = 9, colour = "black", face = "bold"))
+Moon_phase_hist
+```
+
+The graph in fig-3 above showed that most of the insects were captured at a moon visibility percentage that ranged between **75%-100%**, followed by those **50%** to **75%** and the least were trapped between 0% to 25%.
+
+### Mean Humidity
+
+This is the average humidity of the atmosphere used to trap the insects. The average humidity was recorded in form of percentages(%).
+
+#### Mean humidity descriptives
+
+```{r humidity descriptions, echo=FALSE, message=FALSE, warning=FALSE}
+Humid_descriptives <- BA %>% 
+  summarise(
+    Minimum = min(Mean.Humidity),
+    Median = median(Mean.Humidity),
+    Average = round(mean(Mean.Humidity),2),
+    Maximum = max(Mean.Humidity)
+  )
+
+kable(Humid_descriptives, caption = "Average humidity distribution",
+      col.names = c("Minimum percentage","Median percentage","Mean percentage","Maximum percentage"),
+      align = "l") %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica")
+```
+
+The table above indicated that the percentage mean humidity ranged from 19% to 89%, with an average of 60.92% average humidity.
+
+#### Mean Humidity histogram
+
+```{r mean humidity histogram, echo=TRUE, message=FALSE, warning=FALSE}
+Mean_humid_hist <- BA %>% 
+  ggplot(aes(x = Mean.Humidity)) +
+  geom_histogram(binwidth = 10, colour = "white", face = "bold") +
+  labs(title = "Percentage mean humidity distribution",
+       x = "class width", y = "frequency",
+       caption = "fig-4: graph showing percentage distribution of mean humidity"
+       ) +
+  theme(title = element_text(size = 9, colour = "black", face = "bold"))
+
+Mean_humid_hist
+
+```
+
+The graph in fig-4 indicated that the percentage distribution of the average humidity was skewed to the right. It also showed that most of the insects were traped at an average percentage that ranged between **50%** and **75%**.
+
+### Mean Temperature
+
+```{r mean temperature, echo=FALSE, warning=FALSE, message=FALSE}
+Mean_Temp_descriptives <- BA %>% 
+  summarise(
+    Minimum = min(Mean.Temp),
+    Median = median(Mean.Temp),
+    Average = round(mean(Mean.Temp),2),
+    Maximum = max(Mean.Temp)
+  )
+
+kable(Mean_Temp_descriptives, caption = "Mean temperature descriptives",
+      col.names = c("Minimum","Median","Average","Maximum"),
+      align = "l") %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica")
+
+```
+
+# BIVARIATE ANALYSIS
+
+This section contains the descriptive statistics of the average number of insects trapped by the different light bulbs.
+
+```{r mean_number_of_insects, echo=FALSE, message=FALSE, warning=FALSE}
+
+### ---------- acquiring the data frame for average distribution of insects ----------- #####
+
+Average_distribution <- BA %>% 
+  select(Total, Light.Type) %>% 
+  group_by(Light.Type) %>% 
+  summarise(Average = (round(mean(Total), 2))) %>% 
+  arrange(desc(Average))
+
+## ----- generating a table suitable for displaying the data frame ------ ####
+Average_distribution_dataframe <- kable(Average_distribution,
+                                        caption = "Different average number insects in the different light types",
+                                        col.names = c("Light.Type","Average"),
+                                        align = "l"
+                                        ) %>% 
+  kable_paper("striped") %>% 
+  kable_styling(bootstrap_options = c("hover","bordered"), html_font = "heivertica")
+Average_distribution_dataframe
+
+```
+
+The table above indicated that majority of the insects were attracted to the CFL **(41 insects)** bulbs, followed by the A bulbs **(39 insects)**, then LED, B and C bulbs with an average number of 30 insects, 25 insects each respectively whereas the areas that had no bulbs attracted the least number of insects**(5 insects)**.
+
+```{r average distribution chart, warning=FALSE, message=FALSE, echo=FALSE}
+Average_distribution_graph <- BA |>
+  group_by(Light.Type)|>
+  summarise(average_number_of_insects = round(mean(Total), 2))|>
+  arrange(desc(average_number_of_insects))|>
+  ggplot(aes(x = average_number_of_insects, 
+             y = reorder(Light.Type, average_number_of_insects), fill = Light.Type)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Average Distribution of insects by light type",
+       x = "number of insects", y = "Light type",
+       caption = "fig-5: Distinct average number of insect based on light type") +
+  theme(title = element_text(size = 9, colour = "black", face = "bold"))+
+  theme(legend.position = "bottom")
+Average_distribution_graph
+
+```
+# ASSOCIATIONS BETWEEN PREDICTOR VARIABLES
+```{r correlation, echo=FALSE, message=FALSE, warning=FALSE}
+
+### ------ Extraction of the needed data for plotting the correlogram ---------------- ####
+BA2 <- subset(BA, select = -c(Light.Type,Model.Lamp,Location,Site,Standardized.Moon,
+                              Standardized.Mean.Temp,
+                              Standardized.Mean.Humidity,
+                              Standardized.Max.Wind,
+                              Start.Tem,
+                              End.Temp,Humid.Start,
+                              Humid.End,Max.Wind,
+                              Illumination,Diptera,Hymenoptera,Hemiptera,
+                              Psocoptera,Coleoptera,Collembola,Arachnid,
+                              Thysanura,Isoptera,Lepidoptera,Neuroptera,
+                              Larave,Orthoptera,Unident,
+                              Other.Orders,
+                              Total))
+
+#### ---- creating a matrix indicating the spear man's rank correlation co-efficient ---- ####
+BA2_correlation <- rcorr(as.matrix(BA2))
+```
+
+## Correlogram
+```{r correlogram_plot, echo=FALSE, message=FALSE, warning=FALSE}
+BA2_correlogram <- ggcorrplot(BA2,
+                          title = "Correlogram indicating association between\nindependent variables", lab = TRUE)
+BA2_correlogram_plotly <- ggplotly(BA2_correlogram)
+BA2_correlogram_plotly
+```
+
+## SCATTERPLOTS
+This section of the report contains the graphical representation of the relationship between the predictor variable and the dependent variable. The relationship between the mean.Temp, mean.Humidity,X..moon.visible and the total number of insects depending on the light.Type was represented through scatter plots.
+
+### Relationship  between the moon visibility (X...Moon phase) and the total number of insects captured in the different light types.
+```{r total_and_moonvisibility_scatter, echo=FALSE, message=FALSE, warning=FALSE}
+Total_and_moonvisibility_scatterplot <- BA %>% 
+  ggplot(aes(x = X..Moon.Visible, y = Total, col = Light.Type)) +
+  geom_point(size = 1.5) +
+  geom_smooth(method = "lm", colour = "brown", size = 1.5) +
+  labs(title = "Association between the moon visibility and total number of insects\ncaptured in different light type",
+       x = "moon visibility", 
+       y = "Total number of insects",
+       caption = "fig-6: Relationship between moon visiblity and total number of insects") +
+  theme(title = element_text(size = 9, colour = "brown", face = "bold")) +
+  theme(legend.position = "top")
+
+Total_and_moonvisibility_scatterplot
+  
+```
+
+### Relationship between the total number of insects captured and the average humidity level in the different light types.
+```{r total_and_humidity_scatter, echo=FALSE, message=FALSE, warning=FALSE}
+Total_and_humidity_scatterplot <- BA %>% 
+  ggplot(aes(x = Mean.Humidity, y = Total, col = Light.Type)) +
+  geom_point(size = 2) +
+  geom_smooth(colour = "navy", size = 1.5, method = "lm") +
+  labs(title = "Assocaition between the average humidity and total number of insects\n capture with exposure to different light types",
+       x ="Average humidity level",
+       y = "Total number of insects",
+       caption = "Fig-7:Relationship between average humidity and total number of insects") +
+  theme(title = element_text(size = 9, colour = "navy", face = "bold")) +
+  theme(legend.position = "top")
+Total_and_humidity_scatterplot
+  
+```
+
+### Relationship between the average number temperature and number of insects captured in the different light types.
+```{r total_and_temp_scatterplot, echo=FALSE, message=FALSE, warning=FALSE}
+Total_and_temp_scatterplot <- BA %>% 
+  ggplot(aes(x = Mean.Temp, y = Total, colour = Light.Type)) +
+  geom_point(size = 2)+
+  geom_smooth(colour = "darkgreen", size = 1.5, method = "lm") +
+  labs(title = "Association between the average temperature levels and total number of insects\ncaptured in the different light types",
+       x = "Average temperature level",
+       y = "Total number of insects",
+       caption = "Fig-8:Relationship between average temperature and the total number of insects") +
+  theme(title = element_text(size = 9, colour = "darkgreen", face = "bold")) +
+  theme(legend.position = "top")
+Total_and_temp_scatterplot
+
+```
+
+# REGRESSION ANALYSIS
+This section of the analysis report contains a comprehensive overview of linear regression as applied within the realm of machine learning. Linear regression, a fundamental technique, is employed to model the relationship between a dependent variable and one or more independent variables by fitting a linear equation to observed data. This method allows for the prediction of the dependent variable's value based on the given independent variables.
+
+## Model fitting
+```{r linear regression model, echo=FALSE, message=FALSE, warning=FALSE}
+#### ----------- creating the linear regression model ----------------------- #####
+BA_model_fit <- lm(Total ~ X..Moon.Visible +
+                     Mean.Temp +
+                     Mean.Humidity +
+                     Light.Type +
+                     Location,
+                   data = BA
+                     )
+
+#### --------- using the broom package to make the summary output clean -------- ####
+BA_tidy_summary <- tidy(BA_model_fit)
+BA_tidy_result <- as.data.frame(BA_tidy_summary)
+datatable(BA_tidy_result, options = list(
+  scrollX = TRUE,
+  scrollY = "400px",
+  paging = FALSE,
+  ordering = FALSE,
+  stripeClass = c("even","odd")
+), rownames = FALSE)
+
+
+
+
+```
+
+The results in the table above indicated that average humidity, light type(**C**), absence of no bulb, location set at Stunt had significant influences on the total number of insects collected with respective p-values of **0.00**,**0.000005**, **1.93exp-07** respectively. However moon visibility, average temperature, light types **(B,C,CFL and LED)** were insignificantly associated with the total number of insects collected.
+
+```{r predictions, echo=FALSE, message=FALSE, warning=FALSE}
+#### -------- generating predictions for a certain aligned creteria --------------- #####
+# - moon = 60%
+# - mean.temperature = 15
+# - mean.humidity = 60
+# - Location = La Kretz(LK)
+
+### --------- predicting total number of insects captured in different light types ----------- #####
+
+###### ---------- Light type "A" ------------- ######
+New_BA_data <- data.frame(X..Moon.Visible = 60, Mean.Humidity = 60, Mean.Temp = 15, Location = "LK",
+                          Light.Type = "A")
+
+### ----- Predicted number of insects captured by light type "A" ----- #####
+Light_type_A_predictions <- predict(BA_model_fit, newdata = New_BA_data)
+
+## -- predicted number of insects = 50.97326 approximately = 51 insects.
+
+### ------- Predicted number of insects captured by light type "B" ----- ####
+New_BA_data2<- data.frame(X..Moon.Visible = 60, Mean.Humidity = 60, Mean.Temp = 15, Location = "LK",
+                          Light.Type = "B")
+Light_type_B_predictions <- predict(BA_model_fit, newdata = New_BA_data2)
+
+#### ------- Predicted number of insects captured by light type "C" -------- #####
+New_BA_data3 <-data.frame(X..Moon.Visible = 60, Mean.Humidity = 60, Mean.Temp = 15, Location = "LK",
+                          Light.Type = "C")
+Light_type_C_predictions <- predict(BA_model_fit, newdata = New_BA_data3)
+
+
+#### ------- Predicted number of insects captured by light type CFL -------- ####
+New_BA_data4 <- data.frame(X..Moon.Visible = 60, Mean.Humidity = 60, Mean.Temp = 15, Location = "LK",
+                           Light.Type = "CFL")
+Light_type_CFL_predictions <- predict(BA_model_fit, newdata = New_BA_data4)
+
+
+### -------- Predicted number of insects captured by light type LED ----------- #####
+New_BA_data5 <- data.frame(X..Moon.Visible = 60, Mean.Humidity = 60, Mean.Temp = 15, Location = "LK",
+                           Light.Type = "LED")
+Light_Type_LED_predictions <- predict(BA_model_fit, newdata = New_BA_data5)
+
+### -------- Predicted number of insects captured with No light ------------------- #####
+New_BA_data6 <- data.frame(X..Moon.Visible = 60, Mean.Humidity = 60, Mean.Temp = 15, Location = "LK",
+                           Light.Type = "No")
+No_Light_predictions <- predict(BA_model_fit, newdata = New_BA_data6)
+
+#### -------------- Different light type predictions of insects captured ------------------- #####
+paste("The predicted number of insects under light type A is:",Light_type_A_predictions)
+paste("The predicted number of insects under Light type B is:", Light_type_B_predictions)
+paste("The predicted number of insects under Light type C is:", Light_type_C_predictions)
+paste("The predicted number of insects under Light type CFL is:", Light_type_CFL_predictions)
+paste("The predicted number of insects under Light type LED is:", Light_Type_LED_predictions)
+paste("The predicted number of insects under the No light exposure is:", No_Light_predictions)
+
+```
+
